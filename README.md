@@ -3,9 +3,9 @@
 # http://www.craam.mackenzie.br/home_craam.html
 # 
 
-This is software repository of CRAAM instruments.
-CRAAM instruments are:
+This is the software repository of the CRAAM instruments.
 
+CRAAM instruments are:
 1) The Solar Submillimeter Telescope (SST) - 
 2) POlarization Emission of Millimeter Activity at the Sun (POEMAS)
 4) Polarimeter at 7 GHz
