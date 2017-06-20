@@ -213,7 +213,7 @@ class SST(object):
                                      'time':time_stamp }  
             elif (sst_file_date > '1999-05-01' and sst_file_date <= '2002-05-20'):
                 sst_unpacked_record={'hus_time':ur[0], \
-                                     'adcval':ur[1:9], \
+                                     'adc':ur[1:9], \
                                      'ant_temp':[0.0E0,0.0E0,0.0E0,0.0E0,0.0E0,0.0E0,0.0E0,0.0E0] , \
                                      'pos_time':ur[9], \
                                      'ant_coord':[ur[10]/1000.0,ur[11]/1000.0], \
@@ -527,39 +527,159 @@ class yAxis(object):
         if yaxisname == 'ant_coord':
             self.AxisName=['Azimuth','Elevation']
             self.AxisUnits='degrees'
-            self.ant_coord = np.zeros([ndata,2])
-            for i in np.arange(ndata) : self.ant_coord[i] = SST.data[i]['ant_coord']
+            try:
+                self.ant_coord = np.zeros([ndata,2])
+                for i in np.arange(ndata) : self.ant_coord[i] = SST.data[i]['ant_coord']
+            except:
+                self.ant_coord = []
+
+        if yaxisname == 'ant_coord_err':
+            self.AxisName=['Azimuth','Elevation']
+            self.AxisUnits='degrees'
+            try:
+                self.ant_coord_err = np.zeros([ndata,2])
+                for i in np.arange(ndata) : self.ant_coord_err[i] = SST.data[i]['ant_coord_err']
+            except:
+                self.ant_coord_err = []
+                
         elif (yaxisname == 'adc') :
             self.AxisName =['Ch 1','Ch 2','Ch 3','Ch 4','Ch 5','Ch 6']
             self.AxisUnits = 'ADC Units'
-            self.adc = np.zeros([ndata,6],dtype=np.int)
-            for i in np.arange(ndata): self.adc[i] = SST.data[i]['adc']
+            try:
+                self.adc = np.zeros([ndata,6],dtype=np.int)
+                for i in np.arange(ndata): self.adc[i] = SST.data[i]['adc'][0:6]
+            except:
+                self.adc = []
+
         elif (yaxisname == 'scan_off') and (SST.data_type == 'rs' or SST.data_type == 'rf') :
             self.AxisName= ['Azimuth Offset','Elevation Offset']
             self.AxisUnits='degrees'
-            self.scan_off = np.zeros([ndata,2])
-            for i in np.arange(ndata) : self.scan_off[i] = SST.data[i]['scan_off']
+            try:
+                self.scan_off = np.zeros([ndata,2])
+                for i in np.arange(ndata) : self.scan_off[i] = SST.data[i]['scan_off']
+            except:
+                self.scan_off = []
         elif (yaxisname == 'pnt_corr') and (SST.data_type == 'rs' or SST.data_type =='rf') :
             self.AxisName= ['Delta Azimuth','Delta Elevation']
             self.AxisUnits='degrees'
-            self.pnt_corr = np.zeros([ndata,2])
-            for i in np.arange(ndata) : self.pnt_corr[i] = SST.data[i]['pm']
+            try:
+                self.pnt_corr = np.zeros([ndata,2])
+                for i in np.arange(ndata) : self.pnt_corr[i] = SST.data[i]['pm']
+            except:
+                self.pnt_corr = []
         elif (yaxisname == 'target') :
             self.AxisName= 'Target'
             self.AxisUnits=''
-            self.target = np.zeros(ndata,dtype=np.int)
-            for i in np.arange(ndata) : self.target[i] = SST.data[i]['target']
+            try:
+                self.target = np.zeros(ndata,dtype=np.int)
+                for i in np.arange(ndata) : self.target[i] = SST.data[i]['target']
+            except:
+                self.target = []
         elif (yaxisname == 'opmode') :
             self.AxisName= 'Opmode'
             self.AxisUnits=''
-            self.opmode = np.zeros(ndata,dtype=np.int)
-            for i in np.arange(ndata) : self.opmode[i] = SST.data[i]['opmode']
+            try:
+                self.opmode = np.zeros(ndata,dtype=np.int)
+                for i in np.arange(ndata) : self.opmode[i] = SST.data[i]['opmode']
+            except:
+                self.opmode = []
+
         elif (yaxisname == 'mirror_pos') : 
             self.AxisName= 'Calibration Mirror Position'
             self.AxisUnits=''
-            self.mirror_pos = np.zeros(ndata,dtype=np.int)
-            for i in np.arange(ndata) : self.mirror_pos[i] = SST.data[i]['mirror_pos']
-
+            try:
+                self.mirror_pos = np.zeros(ndata,dtype=np.int)
+                for i in np.arange(ndata) : self.mirror_pos[i] = SST.data[i]['mirror_pos']
+            except:
+                self.mirror_pos = []
+        elif (yaxisname == 'adc_sigma') and (SST.data_type == 'bi'):
+            self.AxisName =['sigma Ch 1','sigma Ch 2','sigma Ch 3','sigma Ch 4','sigma Ch 5','sigma Ch 6']
+            self.AxisUnits = 'ADC Units'
+            try:
+                self.adc_sigma = np.zeros([ndata,6],dtype=np.int)
+                for i in np.arange(ndata): self.adc_sigma[i] = SST.data[i]['adc_sigma'][0:6]
+            except:
+                self.adc_sigma=[]
+        elif (yaxisname == 'mix_voltage') and (SST.data_type == 'bi'):
+            self.AxisName = ['Ch 1','Ch 2','Ch 3','Ch 4','Ch 5','Ch 6']
+            self.AxisUnits = 'V'
+            try:
+                self.mix_voltage = np.zeros([ndata,6],dtype=np.int)
+                for i in np.arange(ndata): self.mix_voltage[i] = SST.data[i]['mix_voltage']
+            except:
+                self.mix_voltage = []
+        elif (yaxisname == 'mix_current') and (SST.data_type == 'bi'):
+            self.AxisName = ['Ch 1','Ch 2','Ch 3','Ch 4','Ch 5','Ch 6']
+            self.AxisUnits = 'mA'
+            try:
+                self.mix_current = np.zeros([ndata,6],dtype=np.int)
+                for i in np.arange(ndata): self.mix_current[i] = SST.data[i]['mix_current']
+            except:
+                self.mix_current = []
+        elif (yaxisname == 'hot_temp') and (SST.data_type == 'bi'):
+            self.AxisName = 'Hot Load Temperature'
+            self.AxisUnits = 'C'
+            try:
+                self.hot_temp = np.zeros(ndata,dtype=np.int)
+                for i in np.arange(ndata): self.hot_temp[i] = SST.data[i]['hot_temp']
+            except:
+                self.hot_temp = []
+        elif (yaxisname == 'amb_temp') and (SST.data_type == 'bi'):
+            self.AxisName = 'Ambient Load Temperature'
+            self.AxisUnits = 'C'
+            try:
+                self.amb_temp = np.zeros(ndata,dtype=np.int)
+                for i in np.arange(ndata): self.amb_temp[i] = SST.data[i]['hot_temp']
+            except:
+                self.amb_data = []
+        elif (yaxisname == 'opt_temp') and (SST.data_type == 'bi'):
+            self.AxisName = 'Optical Box Temperature'
+            self.AxisUnits = 'C'
+            try:
+                self.opt_temp = np.zeros(ndata,dtype=np.int)
+                for i in np.arange(ndata): self.opt_temp[i] = SST.data[i]['opt_temp']
+            except:
+                self.opt_temp = []
+        elif (yaxisname == 'if_temp') and (SST.data_type == 'bi'):
+            self.AxisName = 'IF Board Temperature'
+            self.AxisUnits = 'C'
+            try:
+                self.if_temp = np.zeros(ndata,dtype=np.int)
+                for i in np.arange(ndata): self.if_temp[i] = SST.data[i]['if_board_temp']
+            except:
+                self.if_temp = []
+        elif (yaxisname == 'radome_temp') and (SST.data_type == 'bi'):
+            self.AxisName = 'Radome Temperature'
+            self.AxisUnits = 'C'
+            try:
+                self.radome_temp = np.zeros(ndata,dtype=np.int)
+                for i in np.arange(ndata): self.radome_temp[i] = SST.data[i]['radome_temp']
+            except:
+                self.radome_temp = []
+        elif (yaxisname == 'temperature') and (SST.data_type == 'bi'):
+            self.AxisName = 'Atmospheric Temperature'
+            self.AxisUnits = 'C'
+            try:
+                self.temperature = np.zeros(ndata,dtype=np.int)
+                for i in np.arange(ndata): self.temperature[i] = SST.data[i]['temperature']
+            except:
+                self.temperature = []
+        elif (yaxisname == 'humidity') and (SST.data_type == 'bi'):
+            self.AxisName = 'Atmospheric Humidity'
+            self.AxisUnits = '%'
+            try:
+                self.humidity = np.zeros(ndata,dtype=np.int)
+                for i in np.arange(ndata): self.humidity[i] = SST.data[i]['humidity']
+            except:
+                self.humidity = []
+        elif (yaxisname == 'pressure') and (SST.data_type == 'bi'):
+            self.AxisName = 'Atmospheric Pressure'
+            self.AxisUnits = 'mmHg'
+            try:
+                self.pressure = np.zeros(ndata,dtype=np.int)
+                for i in np.arange(ndata): self.pressure[i] = SST.data[i]['pressure']
+            except:
+                self.pressure = []
 
         return
 
