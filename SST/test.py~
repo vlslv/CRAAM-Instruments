@@ -1,0 +1,31 @@
+import oSST
+d=oSST.SST()
+d.data_path='/home/guigue/Programming/python'
+d.initial_time=d.str2datetime('2015-03-09 15')
+d.final_time=d.str2datetime('2015-03-9 15:59')
+d.data_type='rs'
+d.read()
+
+t=oSST.TimeAxis()
+t.getTimeAxis(d,'dt')
+
+y=oSST.yAxis()
+y.getValues(d,'opmode')
+
+import matplotlib.pyplot as plt
+plt.plot(t.time,y.opmode)
+plt.xlabel('UT')
+#plt.ylabel(y.AxisName[0]+' ('+y.AxisUnits+')')
+plt.show()
+
+
+#import oSSTMap
+#m=oSSTMap.Map(d)
+#m.getDataMaps(d)
+
+
+#tp=oSST.TotalPower()
+#tp.getTotalPower(d,oSST.Beams.two)
+
+
+
