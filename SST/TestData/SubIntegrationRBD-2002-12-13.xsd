@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ////////////////////////////////////////////////////////////////////
+  // 
+  //       Schema for SST Raw Binary Data
+  //       Time Span:  > 2002-12-13
+  //       Author:  Guigue
+  //       Date & Local: 2017-07-18 
+  //                     Sao Paulo at freezing temperatures (~ 8 C) 
+  //            
+  ///////////////////////////////////////////////////////////////////
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="time" type="xs:int"/>
+    <xs:annotation>
+        <xs:documentation> "time" is in 100 of microseconds since 0 UT. It is a signed integer of 4
+            bytes. </xs:documentation>
+    </xs:annotation>
+    <xs:element name="adcvalVector" >
+        <xs:annotation>
+            <xs:documentation> "adcval" means ADC values. There is one value for every receiver. In
+                total 6. In the last modification of the acquisition system the type of the data was
+                fixed to unsigned integer of 2 bytes. </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="adcval" minOccurs="6" maxOccurs="6" type="xs:unsignedShort"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="pos_time" type="xs:int"/>
+    <xs:annotation>
+        <xs:documentation> "pos_time" is the time of the positioner readout. In 100 of microsends
+            since 0 UT. An integer of 4 bytes. </xs:documentation>
+    </xs:annotation>
+    <xs:element name="azipos" type="xs:int"/>
+    <xs:annotation>
+        <xs:documentation> "azipos" is the positioner azimuth readout in millidegrees. An integer of
+            4 bytes. </xs:documentation>
+    </xs:annotation>
+    <xs:element name="elepos" type="xs:int"/>
+    <xs:annotation>
+        <xs:documentation> "elepos" is the positioner azimuth readout in millidegrees. An integer of
+            4 bytes. </xs:documentation>
+    </xs:annotation>
+    <xs:element name="pm_daz" type="xs:short"/>
+    <xs:annotation>
+        <xs:documentation> "pm_daz" is the Pointing Model Azimtuh Correction in millidegrees. An
+            integer of 2 bytes. </xs:documentation>
+    </xs:annotation>
+    <xs:element name="pm_del" type="xs:short"/>
+    <xs:annotation>
+        <xs:documentation> "pm_del" is the Pointing Model Elevation Correction in millidegrees. An
+            integer of 2 bytes. </xs:documentation>
+    </xs:annotation>
+    <xs:element name="azierr" type="xs:int"/>
+    <xs:annotation>
+        <xs:documentation> "azierr" is the difference in Azimuth between the commanded position and
+            the actual position in millidegrees. An integer of 4 bytes. </xs:documentation>
+    </xs:annotation>
+    <xs:element name="eleerr" type="xs:int"/>
+    <xs:annotation>
+        <xs:documentation> "eleerr" is the difference in Elevation between the commanded position
+            and the actual position in millidegrees. An integer of 4 bytes. </xs:documentation>
+    </xs:annotation>
+    <xs:element name="x_off" type="xs:short"/>
+    <xs:annotation>
+        <xs:documentation> "x_off" is the distance in Azimuth between the center of a scan and the
+            current position. Only different from zero when the antenna is doing a scan or a map. In
+            millidegrees. An integer of 2 bytes. </xs:documentation>
+    </xs:annotation>
+    <xs:element name="y_off" type="xs:short"/>
+    <xs:annotation>
+        <xs:documentation> "y_off" is the distance in Elevation between the center of a scan and the
+            current position. Only different from zero when the antenna is doing a scan or a map. In
+            millidegrees. An integer of 2 bytes. </xs:documentation>
+    </xs:annotation>
+    <xs:element name="offVector">
+        <xs:annotation>
+            <xs:documenation> "off" corresponds to the OffsetDC intorduced to the receivers to
+                reduce its mean value. There is an off for every receiver. In the real world was
+                never used and off is always 0. It is an integer of 2 bytes. </xs:documenation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="off" minOccurs="6" maxOccurs="6" type="xs:short"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="target" type="xs:byte"/>
+    <xs:annotation>
+        <xs:documenation> "target" is a value coded of the object being observed + the calibartion
+            mirror position. target is a byte number. The first 5 less significant bits represent an
+            object (1: Mercury, 2: Venus.... 11: Sun... etc). The last 3 more significant bits
+            represent the calibartion mirror position. The code is as follows: 000 : antenna (sky)
+            001 : ambient load 010 : hot load 111 : undetermined Then, when the calibartion mirror
+            is in the sky position, pointing to the sun (11) gives the number 00001010 = 10 But if
+            the calibaration mirror is on the hot position then we have 01001010 = 74
+        </xs:documenation>
+    </xs:annotation>
+    <xs:element name="opmode" type="xs:byte"/>
+    <xs:annotation>
+        <xs:documenation> "opmode" a coded value for the different observing modes. From tracking
+            (0) to sky tipping (10). An byte integer. </xs:documenation>
+    </xs:annotation>
+    <xs:element name="gps_status" type="xs:short"/>
+    <xs:annotation>
+        <xs:documentation> "gps_status" a logical variable to store the status of the gps: 0 (bad) 1
+            (good) (!?) It is an integer of 2 bytes. </xs:documentation>
+    </xs:annotation>
+    <xs:element name="recnum" type="xs:int"/>
+    <xs:annotation>
+        <xs:documentation> "recnum" the number of records read. An integer of 4 bytes.
+        </xs:documentation>
+    </xs:annotation>
+</xs:schema>
