@@ -58,7 +58,7 @@
         <SSTDataType>Auxiliary</SSTDataType>
         <InitialDate>2002-11-24</InitialDate>
         <FinalDate>2002-12-13</FinalDate>
-        <DataFormatDecriptionFile>AuxiliaryDataFormat-2002-11-23_to_2002-12-13.xml</DataFormatDecriptionFile>
+        <DataFormatDecriptionFile>AuxiliaryDataFormat-2002-11-24_to_2002-12-13.xml</DataFormatDecriptionFile>
     </SSTDataFormatTimeSpanElement>
 
     <SSTDataFormatTimeSpanElement>

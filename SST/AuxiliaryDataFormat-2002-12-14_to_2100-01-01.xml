@@ -81,13 +81,13 @@ Structure = (from IDL)
     
     <SSTDataVariable VarName="adc">
         <VarName>adc</VarName>
-        <VarLength>8</VarLength>
+        <VarLength>6</VarLength>
         <VarType>xs:unsignedShort</VarType>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="sigma">
         <VarName>sigma</VarName>
-        <VarLength>8</VarLength>
+        <VarLength>6</VarLength>
         <VarType>xs:float</VarType>
     </SSTDataVariable>
     

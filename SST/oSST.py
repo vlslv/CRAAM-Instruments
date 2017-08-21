@@ -103,6 +103,7 @@ class SST(object):
               h : short signed integer , 2 bytes
               H : short unsigned integer , 2 bytes
               B : unsigned byte , 1 byte
+              f : float, 4 bytes
 
         Input:  
         sst_file_type : scalar string == 'bi' | 'rs' | 'rf'
@@ -125,7 +126,7 @@ class SST(object):
             if (sst_file_date > '2002-12-13'):
                 sst_bin_fmt='=iffffHHHHHHffffffhhBBhhhhhhfffffffffffBi'
             elif (sst_file_date > '2002-11-23') and (sst_file_date <= '2002-12-13'):
-                sst_bin_fmt='=iffffiiiiiiffffffhhhBBhhhhhhfffffffffffBi'
+                sst_bin_fmt='=iffffhhhhhhffffffhhhBBhhhhhhfffffffffffBi'
             elif (sst_file_date > '2002-09-15') and (sst_file_date <= '2002-11-23'):
                 sst_bin_fmt='=iffffhhhhhhhhffffffffhhhBBhhhhhhhhhhhhfffffffffffffffffffffffBi'
             elif (sst_file_date <= '2002-09-15') : 

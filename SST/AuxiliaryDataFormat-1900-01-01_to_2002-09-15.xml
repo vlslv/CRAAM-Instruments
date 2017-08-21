@@ -140,13 +140,13 @@ Structure = (from IDL)
     <SSTDataVariable VarName="mix_volt">
         <VarName>mix_volt</VarName>
         <VarLength>6</VarLength>
-        <VarType>xs:short</VarType>
+        <VarType>xs:float</VarType>
     </SSTDataVariable>
 
     <SSTDataVariable VarName="mix_curr">
         <VarName>mix_curr</VarName>
         <VarLength>6</VarLength>
-        <VarType>xs:short</VarType>
+        <VarType>xs:float</VarType>
     </SSTDataVariable>
 
     <SSTDataVariable VarName="hot_temp">

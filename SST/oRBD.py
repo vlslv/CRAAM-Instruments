@@ -60,14 +60,63 @@ class RBD(object):
         return type,date
 
     """-----------------------------------------------------------------------------"""
-    
-    def __init__(self,fname=''):
-        
+
+    def define_fmt(self,header):
+        """
+
+        define_fmt:
+        It defines three elements to be used for reading  the raw binary data (RBD) files.
+        1) fmt: The binary format in pythons rules. It is a string. With this string python
+                can read one record and put it in a list (vector) of 'unpacked' data
+        2) ranges : it is a list of 2-members lists. Every member points to the begginning and the end
+                    of a variable in the 'unpacked' list (vector)
+        3) fieldnames : it is a list of field names in the binary file. It will be used to create the FITS 
+                        header
+
+        Change Record:
+        First created by Guigue @ Sampa 2017.08.20 : checked against the xml files only.  
+
+        """
+        # Internal variables destroyed at the end of procedure
+        _fmt_        = '='
+        _fieldnames_ = []
+        _ranges_     = []
+        _fielditer_  = 0
+        for child in header:
+            
+            # xml table. Children have three fields
+            _VarName_ = child[0].text                                          # Variable Name
+            _VarDim_  = int(child[1].text)                                     # Variable Dimension
+            _VarType_ = child[2].text                                          # Variable type
+
+            _fieldnames_.append(_VarName_)
+            _ranges_.append([_fielditer_,_fielditer_+_VarDim_-1])
+            _fielditer_+=_VarDim_
+            
+            for i in range(_VarDim_):
+                # A short table that converts from xml types to python bynary formats 
+                if ( _VarType_ == 'xs:int')           : _fmt_ = _fmt_ + 'i'  # a 4 bytes integer
+                if ( _VarType_ == 'xs:unsignedShort') : _fmt_ = _fmt_ + 'H'  # a 2 bytes unsigned integer
+                if ( _VarType_ == 'xs:short')         : _fmt_ = _fmt_ + 'h'  # a 2 bytes integer
+                if ( _VarType_ == 'xs:byte')          : _fmt_ = _fmt_ + 'B'  # a byte 
+                if ( _VarType_ == 'xs:float')         : _fmt_ = _fmt_ + 'f'  # a 4 bytes float
+
+            bin_header = {'names':_fieldnames_, 'ranges':_ranges_,'fmt':_fmt_}
+        return bin_header
+
+    def read_xml_header(self,fname):
         _tt_        = oRBD.DataTimeSpan()
         _ISODate_   = self.getISODate(fname)
         _hfname_    = _tt_.findHeaderFile(SSTType=_ISODate_[0],SSTDate=_ISODate_[1])
         _xmlheader_ = xmlet.parse(_hfname_)
+        self.hfname = _hfname_
         self.header = _xmlheader_.getroot()
+        return 
+    
+    def __init__(self,fname='rs19990501'):
+
+        self.read_xml_header(fname)
+        
         self.data   = []
         self.fname  = fname
         return 
@@ -115,7 +164,7 @@ class DataTimeSpan(object):
         """
         DataDescriptionFileName=''
         for child in self.table:
-            if (child[0].text == SSTType) and (child[1].text <= SSTDate) and (child[2].text > SSTDate) :
+            if (child[0].text == SSTType) and (child[1].text <= SSTDate) and (child[2].text >= SSTDate) :
                 DataDescriptionFileName=child[3].text
         return DataDescriptionFileName
 
