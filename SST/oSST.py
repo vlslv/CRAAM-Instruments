@@ -469,6 +469,7 @@ class SST(object):
                     if (ur[0] >= t1[1] and ur[0] <= t2[1]):
                         sst_record = self.unpack_one_record(ur,t1[2],self.data_type)
                         self.data.append(sst_record)
+                os.close(fd)
             else:
                 print 'File '+fname+'  not found'
 
