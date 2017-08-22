@@ -26,6 +26,12 @@ class RBD(object):
 #
 ###############################################################################################
 
+    def base_name(self,fname):
+        _s_ = fname.strip().split('/')
+        return _s_[len(_s_)-1]
+
+    """ -------------------------------------------------------------------------------------"""
+    
     def getISODate(self,fname):
         """ 
         getISODate:
@@ -41,11 +47,11 @@ class RBD(object):
         Change Record:
         First written by Guigue @ Sampa on 2017-08-19
         """
-
+        _bname_=self.base_name(fname)                                        # Get the base name (remove /path/to/file )
         try:
-            _name1_,_name2_=fname.strip().split(".")
+            _name1_,_name2_=_bname_.strip().split(".")                       # Does it have hours?
         except:
-            _name1_ = fname.strip()
+            _name1_ = _bname_.strip()
             _name2_ = ''
             
         if (_name1_[0:2].upper() == 'RS') or (_name1_[0:2].upper() == 'RF'):
@@ -61,7 +67,7 @@ class RBD(object):
 
     """-----------------------------------------------------------------------------"""
 
-    def define_fmt(self,header):
+    def define_fmt(self):
         """
 
         define_fmt:
@@ -82,7 +88,7 @@ class RBD(object):
         _fieldnames_ = []
         _ranges_     = []
         _fielditer_  = 0
-        for child in header:
+        for child in self.header:
             
             # xml table. Children have three fields
             _VarName_ = child[0].text                                          # Variable Name
@@ -102,8 +108,11 @@ class RBD(object):
                 if ( _VarType_ == 'xs:float')         : _fmt_ = _fmt_ + 'f'  # a 4 bytes float
 
             bin_header = {'names':_fieldnames_, 'ranges':_ranges_,'fmt':_fmt_}
-        return bin_header
+            self.bin_header=bin_header
+        return
 
+    """-----------------------------------------------------------------------------------------"""
+    
     def read_xml_header(self,fname):
         _tt_        = oRBD.DataTimeSpan()
         _ISODate_   = self.getISODate(fname)
@@ -111,12 +120,62 @@ class RBD(object):
         _xmlheader_ = xmlet.parse(_hfname_)
         self.hfname = _hfname_
         self.header = _xmlheader_.getroot()
-        return 
+        return
     
+    """-----------------------------------------------------------------------------"""
+
+    def cleanRBD(self):
+        """
+
+        cleanRBD : is a set of procedures to clean the Raw Binary Data (RBD).  
+            This procedures could be applied when reading the record. But for
+            readbility reasons I do prefer to do it after the files is completely 
+            read. Below a list of procedures.
+
+            1) Clean_0_time: for some misterious reason, the first
+                   record in a Auxiliary file has all values equal to 0. We 
+                   remove these records. 
+
+        Change Record:
+            First written by Guigue @ Sampa on 2017-08-22
+
+        """
+        
+        for _irec_ in range(len(self.data)-1):
+            if ( self.data[_irec_]['time'] == 0 ) : _nothing_= self.data.pop(_irec_)
+        return
+                
+    def readRBD(self):
+
+        self.define_fmt()
+        _fmt_    = self.bin_header['fmt']
+        _header_ = self.bin_header['names']
+        _ranges_ = self.bin_header['ranges']
+        _Nfields_= len(_header_)
+        
+        if os.path.exists(self.fname) :
+            _fd_         = os.open(self.fname,os.O_RDONLY)
+            _nrec_       = os.fstat(_fd_).st_size / struct.calcsize(_fmt_)
+            for _irec_ in range(_nrec_) :
+                _record_      = {}
+                _one_record_  = os.read(_fd_,struct.calcsize(_fmt_))
+                _ur_          = struct.unpack(_fmt_,_one_record_)
+                for _field_ in range(_Nfields_):
+                    if (_ranges_[_field_][0] == _ranges_[_field_][1]) :
+                        _record_.update({_header_[_field_]:_ur_[_ranges_[_field_][0]]})
+                    else:
+                        _record_.update({_header_[_field_]:_ur_[_ranges_[_field_][0]:_ranges_[_field_][1]+1]})
+                self.data.append(_record_)
+            os.close(_fd_)
+        else:
+            print 'File '+fname+'  not found'
+
+        return
+
+        """-----------------------------------------------------------------------------"""    
     def __init__(self,fname='rs19990501'):
 
         self.read_xml_header(fname)
-        
         self.data   = []
         self.fname  = fname
         return 
