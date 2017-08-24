@@ -4,6 +4,7 @@ import numpy as np
 import datetime as dt
 import xml.etree.ElementTree as xmlet
 from enum import IntEnum
+from astropy.io import fits
 
 # Our methods
 import astronomical_methods as am
@@ -26,6 +27,10 @@ class RBD(object):
 #
 ###############################################################################################
 
+    """-------------------------------------------------------------------------------------"""
+    #def writeFITS(self):
+        
+    
     def base_name(self,fname):
         _s_ = fname.strip().split('/')
         return _s_[len(_s_)-1]
@@ -53,16 +58,28 @@ class RBD(object):
         except:
             _name1_ = _bname_.strip()
             _name2_ = ''
-            
-        if (_name1_[0:2].upper() == 'RS') or (_name1_[0:2].upper() == 'RF'):
-            type='Data'
-        else:
-            type='Auxiliary'
+
+        _SSTprefix_ = _name1_[0:2].upper()
+        _SSTtype_ = ''
+    
+        if (_SSTprefix_ == 'RS'): SSTtype='Integration'
+        if (_SSTprefix_ == 'RF'): SSTtype='Subintegration'
+        if (_SSTprefix_ == 'BI'): SSTtype='Auxiliary'
             
         if (len(_name1_) == 8):
             date=str(int(_name1_[2:4])+1900) + '-' + _name1_[4:6] + '-' + _name1_[6:8]
         else:
             date=str(int(_name1_[2:5])+1900) + '-' + _name1_[5:7] + '-' + _name1_[7:9]
+        if (len(_name2_) == 4) :
+            time=_name2_[0:2]+':'+_name2_[2:4]
+        else:
+            time='00:00'
+        
+        self.MetaData.update({'RBDFileName' : _bname_})
+        self.MetaData.update({'ISODate'     : date   })
+        self.MetaData.update({'ISOTime'     : time   })
+        self.MetaData.update({'SSTType'     : SSTtype})
+        
         return type,date
 
     """-----------------------------------------------------------------------------"""
@@ -114,9 +131,9 @@ class RBD(object):
     """-----------------------------------------------------------------------------------------"""
     
     def read_xml_header(self,fname):
+        self.getISODate(fname)       
         _tt_        = oRBD.DataTimeSpan()
-        _ISODate_   = self.getISODate(fname)
-        _hfname_    = _tt_.findHeaderFile(SSTType=_ISODate_[0],SSTDate=_ISODate_[1])
+        _hfname_    = _tt_.findHeaderFile(SSTType=self.MetaData['SSTType'],SSTDate=self.MetaData['ISODate'])
         _xmlheader_ = xmlet.parse(_hfname_)
         self.hfname = _hfname_
         self.header = _xmlheader_.getroot()
@@ -141,8 +158,10 @@ class RBD(object):
 
         """
         
-        for _irec_ in range(len(self.data)-1):
-            if ( self.data[_irec_]['time'] == 0 ) : _nothing_= self.data.pop(_irec_)
+        for _irec_ in range(len(self.Data)-1):
+            if ( self.Data[_irec_]['time'] == 0 ) : _nothing_= self.Data.pop(_irec_)
+        self.Comments.append('Null data removed')
+        
         return
                 
     def readRBD(self):
@@ -165,19 +184,24 @@ class RBD(object):
                         _record_.update({_header_[_field_]:_ur_[_ranges_[_field_][0]]})
                     else:
                         _record_.update({_header_[_field_]:_ur_[_ranges_[_field_][0]:_ranges_[_field_][1]+1]})
-                self.data.append(_record_)
+                self.Data.append(_record_)
             os.close(_fd_)
         else:
             print 'File '+fname+'  not found'
 
+        self.Comments.append('Converted to FITS level-0 with oRBD.py version '+self.version)
+        
         return
 
         """-----------------------------------------------------------------------------"""    
     def __init__(self,fname='rs19990501'):
 
+        self.fname = fname
+        self.Data   = []
+        self.MetaData = {}
+        self.Comments = []
+        self.version = '20170824T23:14'
         self.read_xml_header(fname)
-        self.data   = []
-        self.fname  = fname
         return 
 
 ######################################################################################
@@ -203,7 +227,7 @@ class DataTimeSpan(object):
 
     """    
         
-    def findHeaderFile(self,SSTType="Data",SSTDate="1899-12-31"):
+    def findHeaderFile(self,SSTType="Integration",SSTDate="1899-12-31"):
         """
         findHeaderFile:
         Given the DataType and the Date, look for the RBD xml description file. 
@@ -211,7 +235,7 @@ class DataTimeSpan(object):
         I'm tired to find it ;-)
 
         Input:
-            SSTType = "Data" | "Auxiliary"
+            SSTType = "Subintegration" | "Integration" | "Auxiliary"
             SSTDate = YYYY-MM-DD
 
         Output:
@@ -219,11 +243,17 @@ class DataTimeSpan(object):
 
         Change Record
             First created by Guigue @ Sampa on 2017-08-19 
+            Corrected on 2017-08-24
 
         """
         DataDescriptionFileName=''
+        if (SSTType == 'Integration') or (SSTType == 'Subintegration') :
+            filetype='Data'
+        else:
+            filetype='Auxiliary'
+            
         for child in self.table:
-            if (child[0].text == SSTType) and (child[1].text <= SSTDate) and (child[2].text >= SSTDate) :
+            if (child[0].text == filetype) and (child[1].text <= SSTDate) and (child[2].text >= SSTDate) :
                 DataDescriptionFileName=child[3].text
         return DataDescriptionFileName
 
