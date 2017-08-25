@@ -27,13 +27,70 @@ class RBD(object):
 #
 ###############################################################################################
 
-    """-------------------------------------------------------------------------------------"""
-    #def writeFITS(self):
+    """------------------------------------------------------------------------------------ """
+
+    def timeSpan(self):
+        return self.getISOTime(self.Data[0]['time']), self.getISOTime(self.Data[-1]['time'])
         
+    
+    """-------------------------------------------------------------------------------------"""
+    def writeFITS(self):
+        fits_fname='sst-'+self.MetaData['SSTType'].lower()+'-'+self.MetaData['ISODate']+'T'+self.MetaData['ISOTime']+'-level0.fits'
+        self.MetaData.update({'FITFname':fits_fname})
+
+        hdu = fits.PrimaryHDU()
+        hdu.header.append(('origin','CRAAM/Universidade Presbiteriana Mackenzie',''))
+        hdu.header.append(('telescop','Solar Submillimeter Telescope',''))
+        hdu.header.append(('date-obs',self.MetaData['ISODate'],''))
+        _hhmmss_ = self.timeSpan()
+        hdu.header.append(('t_start',self.MetaData['ISODate']+'T'+ _hhmmss_[0]))
+        hdu.header.append(('t_end',self.MetaData['ISODate']+'T'+ _hhmmss_[1]))
+        hdu.header.append(('data_typ',self.MetaData['SSTType']))
+        hdu.header.append(('origfile',self.MetaData['RBDFileName']))
+        for i in range(len(self.Comments)):
+            hdu.header.append(('history',self.Comments[i]))
+
+        for child in self.header:
+            
+            # xml table. Children have three fields
+            _ttype_ = child[0].text        # Name
+            _tform_ = child[1].text        # (Dimension) Format
+            _tunit_ = child[3].text        # Unit
+            _tzero_ = 0                    # Effective 0 (to mimmic an unsigned integer)
+            _tscal_ = 1.0                  # Data Scaling Factor
+            _tdim_  = int(child[1].text)   # Dimension  
+            _VarType_ = child[2].text      # Variable type
+                        
+            if ( _VarType_ == 'xs:int') : 
+                _tform_ += 'J'
+                
+            if ( _VarType_ == 'xs:unsignedShort') :
+                _tform_ += 'I'
+                _tzero_ = 32768
+                
+            if ( _VarType_ == 'xs:short'):
+                _tform__ += 'I' 
+                
+            if ( _VarType_ == 'xs:byte') :
+                _tform_ += 'B'
+                
+            if ( _VarType_ == 'xs:float') :
+                _tform_ += 'E'
+                
+        return hdu
     
     def base_name(self,fname):
         _s_ = fname.strip().split('/')
         return _s_[len(_s_)-1]
+
+    """------------------------------------------------------------------------------------ """
+
+    def getISOTime(self,hustime):
+        
+        _hours_ = hustime / 36000000
+        _minutes_ = (hustime % 36000000) / 600000
+        _secs_ = (hustime - (_hours_ * 36000000 + _minutes_ * 600000)) / 10000.0
+        return '{0:=02d}'.format(_hours_)+':'+ '{0:=02d}'.format(_minutes_) +':'+'{0:=06.3f}'.format(_secs_)
 
     """ -------------------------------------------------------------------------------------"""
     
@@ -149,7 +206,7 @@ class RBD(object):
             readbility reasons I do prefer to do it after the files is completely 
             read. Below a list of procedures.
 
-            1) Clean_0_time: for some misterious reason, the first
+            1) Clean_null_Data: for some misterious reason, the first
                    record in a Auxiliary file has all values equal to 0. We 
                    remove these records. 
 
@@ -157,13 +214,20 @@ class RBD(object):
             First written by Guigue @ Sampa on 2017-08-22
 
         """
-        
+        _removed_rec_ = ''
+        _count_ = 0
         for _irec_ in range(len(self.Data)-1):
-            if ( self.Data[_irec_]['time'] == 0 ) : _nothing_= self.Data.pop(_irec_)
-        self.Comments.append('Null data removed')
+            if ( self.Data[_irec_]['time'] == 0 ) :
+                _nothing_= self.Data.pop(_irec_)
+                _removed_rec_+=str(_irec_)+' '
+                _count_ = _count_ + 1
+        self.Comments.append('Checked for null data')
+        if (_count_ > 0) : self.Comments.append('null-data records removed :'+_removed_rec_)
         
         return
-                
+
+    """-------------------------------------------------------------------------- """
+    
     def readRBD(self):
 
         self.define_fmt()
@@ -193,7 +257,8 @@ class RBD(object):
         
         return
 
-        """-----------------------------------------------------------------------------"""    
+    """-----------------------------------------------------------------------------"""
+    
     def __init__(self,fname='rs19990501'):
 
         self.fname = fname

@@ -23,6 +23,7 @@
             <xs:element name="VarName" type="xs:string"/>
             <xs:element name="VarLength" type="xs:integer"/>
             <xs:element name="VarType" type="xs:string"/>
+            <xs:element name="VarUnit" type="xs:string"/>
         </xs:sequence>
         <xs:attribute name="VarName" type="xs:string"/>
     </xs:complexType>

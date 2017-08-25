@@ -47,80 +47,112 @@ Date   = 2017-07-29
         <VarName>time</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:int</VarType>
+        <VarUnit>Hus</VarUnit>
     </SSTDataVariable>
+    
     <SSTDataVariable VarName="adcval">
         <VarName>adcval</VarName>
         <VarLength>6</VarLength>
         <VarType>xs:unsignedShort</VarType>
+        <VarUnit>ADCu</VarUnit>
     </SSTDataVariable>
+    
     <SSTDataVariable VarName="pos_time">
         <VarName>pos_time</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:int</VarType>
+        <VarUnit>Hus</VarUnit>
     </SSTDataVariable>
+
     <SSTDataVariable VarName="azipos">
         <VarName>azipos</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:int</VarType>
+        <VarUnit>mDeg</VarUnit>
     </SSTDataVariable>
+    
     <SSTDataVariable VarName="elepos">
         <VarName>elepos</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:int</VarType>
+        <VarUnit>mDeg</VarUnit>
     </SSTDataVariable>
+
     <SSTDataVariable VarName="pm_daz">
         <VarName>pm_daz</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:short</VarType>
+        <VarUnit>mDeg</VarUnit>
     </SSTDataVariable>
+    
     <SSTDataVariable VarName="pm_del">
         <VarName>pm_del</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:short</VarType>
+        <VarUnit>mDeg</VarUnit>
     </SSTDataVariable>
+    
     <SSTDataVariable VarName="azierr">
         <VarName>azierr</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:int</VarType>
+        <VarUnit>mDeg</VarUnit>
     </SSTDataVariable>
+    
     <SSTDataVariable VarName="eleerr">
         <VarName>eleerr</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:int</VarType>
+        <VarUnit>mDeg</VarUnit>
     </SSTDataVariable>
+    
     <SSTDataVariable VarName="x_off">
         <VarName>x_off</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:short</VarType>
+        <VarUnit>mDeg</VarUnit>
     </SSTDataVariable>
+    
     <SSTDataVariable VarName="y_off">
         <VarName>y_off</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:short</VarType>
+        <VarUnit>mDeg</VarUnit>
     </SSTDataVariable>
+    
     <SSTDataVariable VarName="off">
         <VarName>off</VarName>
         <VarLength>6</VarLength>
         <VarType>xs:short</VarType>
+        <VarUnit>ADCu</VarUnit>
     </SSTDataVariable>
+    
     <SSTDataVariable VarName="target">
         <VarName>target</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:byte</VarType>
+        <VarUnit>none</VarUnit>
     </SSTDataVariable>
+    
     <SSTDataVariable VarName="opmode">
         <VarName>opmode</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:byte</VarType>
+        <VarUnit>none</VarUnit>
     </SSTDataVariable>
+    
     <SSTDataVariable VarName="gps_status">
         <VarName>gps_status</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:short</VarType>
+        <VarUnit>none</VarUnit>
     </SSTDataVariable>
+    
     <SSTDataVariable VarName="recnum">
         <VarName>recnum</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:int</VarType>
+        <VarUnit>none</VarUnit>
     </SSTDataVariable>
+    
 </SSTDataFormat>
