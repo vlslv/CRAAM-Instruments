@@ -53,149 +53,175 @@ Structure = (from IDL)
         <VarName>time</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:int</VarType>
+        <VarUnit>Hus</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="azipos">
         <VarName>azipos</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:float</VarType>
+        <VarUnit>Deg</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="elepos">
         <VarName>elepos</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:float</VarType>
+        <VarUnit>Deg</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="azierr">
         <VarName>azierr</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:float</VarType>
+        <VarUnit>Deg</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="eleerr">
         <VarName>eleerr</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:float</VarType>
+        <VarUnit>Deg</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="adc">
         <VarName>adc</VarName>
         <VarLength>6</VarLength>
         <VarType>xs:unsignedShort</VarType>
+        <VarUnit>ADCu</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="sigma">
         <VarName>sigma</VarName>
         <VarLength>6</VarLength>
         <VarType>xs:float</VarType>
+        <VarUnit>ADCu</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="gps_status">
         <VarName>gps_status</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:short</VarType>
+        <VarUnit>none</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="acq_gain">
         <VarName>acq_gain</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:short</VarType>
+        <VarUnit>none</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="target">
         <VarName>target</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:byte</VarType>
+        <VarUnit>none</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="opmode">
         <VarName>opmode</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:byte</VarType>
+        <VarUnit>none</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="off">
         <VarName>off</VarName>
         <VarLength>6</VarLength>
         <VarType>xs:short</VarType>
+        <VarUnit>ADCu</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="hot_temp">
         <VarName>hot_temp</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:float</VarType>
+        <VarUnit>C</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="amb_temp">
         <VarName>amb_temp</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:float</VarType>
+        <VarUnit>C</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="opt_temp">
         <VarName>opt_temp</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:float</VarType>
+        <VarUnit>C</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="if_board">
         <VarName>if_board</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:float</VarType>
+        <VarUnit>C</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="radome_temp">
         <VarName>radome_temp</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:float</VarType>
+        <VarUnit>C</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="humidity">
         <VarName>humidity</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:float</VarType>
+        <VarUnit>%</VarUnit>
     </SSTDataVariable>
+    
     <SSTDataVariable VarName="temperature">
         <VarName>temperature</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:float</VarType>
+        <VarUnit>C</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="opac_210">
         <VarName>opac_210</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:float</VarType>
+        <VarUnit>none</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="opac_405">
         <VarName>opac_405</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:float</VarType>
+        <VarUnit>none</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="elevation">
         <VarName>elevation</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:float</VarType>
+        <VarUnit>none</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="pressure">
         <VarName>pressure</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:float</VarType>
+        <VarUnit>mmHg</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="burst">
         <VarName>burst</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:byte</VarType>
+        <VarUnit>none</VarUnit>
     </SSTDataVariable>
     
     <SSTDataVariable VarName="errors">
         <VarName>errors</VarName>
         <VarLength>1</VarLength>
         <VarType>xs:int</VarType>
+        <VarUnit>none</VarUnit>
     </SSTDataVariable>
     
 </SSTDataFormat>
