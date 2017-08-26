@@ -1,92 +1,88 @@
 # External methods
-import string, os, struct, glob
+
+import sys, string, os, struct, glob
 import numpy as np
-import datetime as dt
 import xml.etree.ElementTree as xmlet
-from enum import IntEnum
 from astropy.io import fits
 
 # Our methods
-import astronomical_methods as am
 import oRBD
 
 class RBD(object):
 
 ###############################################################################################
 #
-#    RBD: A python class to use with SST data. Main objective to create SST level-0 files
+#    RBD: A python class to use with SST data, its main objective is to create SST level-0 files
 #
 #    Author:  Guigue@Sampa
 #             guigue@craam.mackenzie.br  , guigue@gcastro.net
 #             http://www.guigue.gcastro.net
 #
+#    Use:
+#            >>> import oRBD
+#            >>> d=oRBD.RBD('rs1150309.1500')
+#            >>> d.readRBDinDictionary()
+#            >>> d.writeFITS()
+#            Check
+#            >>> from astropy.io import fits
+#            >>> h=fits.open(fname.fits)
+#            >>> print h.info()
+#            >>> print(repr(h[0].header))             # Primary Header
+#            >>> print(repr(h[1].header))             # Table header
+#            >>> h[1].data                            # Actual Data
+#
 #    Change Record :  
 #         - 2017-06-15 : First written
-#         - 2017-06-17 : time now is python datetime format compatible.
 #         - 2017-08-19 : xml files implementation
+#         - 2017-08-26 : writeFITS implementation
 #
 ###############################################################################################
 
     """------------------------------------------------------------------------------------ """
 
     def timeSpan(self):
-        return self.getISOTime(self.Data[0]['time']), self.getISOTime(self.Data[-1]['time'])
+        """
+        timeSpan:
+             looks for the first and last non-zero time in the time array and converts to
+             ISO time (HH:MM:SS.SSS)
+
+        Change Record:
+             First written by Guigue @ Sampa - 2017-08-26
+
+        """
+        _nonzero_=self.Data['time'].nonzero()
+        return self.getISOTime(self.Data['time'][_nonzero_[0][0]]) ,self.getISOTime(self.Data['time'][_nonzero_[0][-1]])
         
     
     """-------------------------------------------------------------------------------------"""
-    def writeFITS(self):
-        fits_fname='sst-'+self.MetaData['SSTType'].lower()+'-'+self.MetaData['ISODate']+'T'+self.MetaData['ISOTime']+'-level0.fits'
-        self.MetaData.update({'FITFname':fits_fname})
-
-        hdu = fits.PrimaryHDU()
-        hdu.header.append(('origin','CRAAM/Universidade Presbiteriana Mackenzie',''))
-        hdu.header.append(('telescop','Solar Submillimeter Telescope',''))
-        hdu.header.append(('date-obs',self.MetaData['ISODate'],''))
-        _hhmmss_ = self.timeSpan()
-        hdu.header.append(('t_start',self.MetaData['ISODate']+'T'+ _hhmmss_[0]))
-        hdu.header.append(('t_end',self.MetaData['ISODate']+'T'+ _hhmmss_[1]))
-        hdu.header.append(('data_typ',self.MetaData['SSTType']))
-        hdu.header.append(('origfile',self.MetaData['RBDFileName']))
-        for i in range(len(self.Comments)):
-            hdu.header.append(('history',self.Comments[i]))
-
-        for child in self.header:
-            
-            # xml table. Children have three fields
-            _ttype_ = child[0].text        # Name
-            _tform_ = child[1].text        # (Dimension) Format
-            _tunit_ = child[3].text        # Unit
-            _tzero_ = 0                    # Effective 0 (to mimmic an unsigned integer)
-            _tscal_ = 1.0                  # Data Scaling Factor
-            _tdim_  = int(child[1].text)   # Dimension  
-            _VarType_ = child[2].text      # Variable type
-                        
-            if ( _VarType_ == 'xs:int') : 
-                _tform_ += 'J'
-                
-            if ( _VarType_ == 'xs:unsignedShort') :
-                _tform_ += 'I'
-                _tzero_ = 32768
-                
-            if ( _VarType_ == 'xs:short'):
-                _tform__ += 'I' 
-                
-            if ( _VarType_ == 'xs:byte') :
-                _tform_ += 'B'
-                
-            if ( _VarType_ == 'xs:float') :
-                _tform_ += 'E'
-                
-        return hdu
-    
     def base_name(self,fname):
+        """
+        base_name:
+            Simple procedure to get the base name of a full described file name
+            /path/to/file/filename --> filename
+
+        Change Record:
+            Guigue @ Sampa - 2017-08-26
+
+        """
         _s_ = fname.strip().split('/')
         return _s_[len(_s_)-1]
 
     """------------------------------------------------------------------------------------ """
 
     def getISOTime(self,hustime):
-        
+        """
+        getISOTime:
+           Convert from Hus (hundred of milliseconds) to HH:MM:SS.SSSS
+
+        inputs: 
+           hustime : a 4bytes integer with the time in hundred of milliseconds since 0 UT. 
+                     hustime is the SST time format.
+
+        Change Record:
+           First written Guigue @ Sampa - 2017-08-26
+
+        """
         _hours_ = hustime / 36000000
         _minutes_ = (hustime % 36000000) / 600000
         _secs_ = (hustime - (_hours_ * 36000000 + _minutes_ * 600000)) / 10000.0
@@ -162,11 +158,14 @@ class RBD(object):
         _fieldnames_ = []
         _ranges_     = []
         _fielditer_  = 0
+        _TotalDim_   = 0
+        
         for child in self.header:
             
             # xml table. Children have three fields
             _VarName_ = child[0].text                                          # Variable Name
             _VarDim_  = int(child[1].text)                                     # Variable Dimension
+            _TotalDim_ += _VarDim_
             _VarType_ = child[2].text                                          # Variable type
 
             _fieldnames_.append(_VarName_)
@@ -181,7 +180,7 @@ class RBD(object):
                 if ( _VarType_ == 'xs:byte')          : _fmt_ = _fmt_ + 'B'  # a byte 
                 if ( _VarType_ == 'xs:float')         : _fmt_ = _fmt_ + 'f'  # a 4 bytes float
 
-            bin_header = {'names':_fieldnames_, 'ranges':_ranges_,'fmt':_fmt_}
+            bin_header = {'names':_fieldnames_, 'ranges':_ranges_,'fmt':_fmt_,'TotalDim':_TotalDim_}
             self.bin_header=bin_header
         return
 
@@ -197,38 +196,19 @@ class RBD(object):
         return
     
     """-----------------------------------------------------------------------------"""
-
-    def cleanRBD(self):
+    
+    def readRBDinDictionary(self):
         """
-
-        cleanRBD : is a set of procedures to clean the Raw Binary Data (RBD).  
-            This procedures could be applied when reading the record. But for
-            readbility reasons I do prefer to do it after the files is completely 
-            read. Below a list of procedures.
-
-            1) Clean_null_Data: for some misterious reason, the first
-                   record in a Auxiliary file has all values equal to 0. We 
-                   remove these records. 
+        readRBDinDictionary
+           It is the class method used to read a SST Raw Binary Data (RBD). The data is
+           represented with a dictionary, each element represents one SST variable, and data 
+           is stored in a numpy ndarray. Every ndarray has the python dtype corresponding to 
+           the original SST data. 
 
         Change Record:
-            First written by Guigue @ Sampa on 2017-08-22
+           First Written by Guigue @ Sampa - 2017-08-26
 
         """
-        _removed_rec_ = ''
-        _count_ = 0
-        for _irec_ in range(len(self.Data)-1):
-            if ( self.Data[_irec_]['time'] == 0 ) :
-                _nothing_= self.Data.pop(_irec_)
-                _removed_rec_+=str(_irec_)+' '
-                _count_ = _count_ + 1
-        self.Comments.append('Checked for null data')
-        if (_count_ > 0) : self.Comments.append('null-data records removed :'+_removed_rec_)
-        
-        return
-
-    """-------------------------------------------------------------------------- """
-    
-    def readRBD(self):
 
         self.define_fmt()
         _fmt_    = self.bin_header['fmt']
@@ -239,16 +219,32 @@ class RBD(object):
         if os.path.exists(self.fname) :
             _fd_         = os.open(self.fname,os.O_RDONLY)
             _nrec_       = os.fstat(_fd_).st_size / struct.calcsize(_fmt_)
+            
+            for _field_ in range(_Nfields_):
+                
+                if _fmt_[_field_+1] == 'i' : _nptype_=np.int32
+                if _fmt_[_field_+1] == 'H' : _nptype_=np.uint16
+                if _fmt_[_field_+1] == 'h' : _nptype_=np.int16
+                if _fmt_[_field_+1] == 'B' : _nptype_=np.byte
+                if _fmt_[_field_+1] == 'f' : _nptype_=np.float32
+            
+                if ( _ranges_[_field_][0] == _ranges_[_field_][1]):
+                    self.Data.update( {_header_[_field_] : np.array(np.empty([_nrec_],_nptype_)) })
+                else:
+                    _sec_dim_ = _ranges_[_field_][1]-_ranges_[_field_][0]+1
+                    self.Data.update( {_header_[_field_] : np.array(np.empty([_nrec_,_sec_dim_],_nptype_))})
+                    
+
             for _irec_ in range(_nrec_) :
-                _record_      = {}
                 _one_record_  = os.read(_fd_,struct.calcsize(_fmt_))
                 _ur_          = struct.unpack(_fmt_,_one_record_)
+
                 for _field_ in range(_Nfields_):
                     if (_ranges_[_field_][0] == _ranges_[_field_][1]) :
-                        _record_.update({_header_[_field_]:_ur_[_ranges_[_field_][0]]})
+                        self.Data[_header_[_field_]][_irec_]= _ur_[_ranges_[_field_][0]]
                     else:
-                        _record_.update({_header_[_field_]:_ur_[_ranges_[_field_][0]:_ranges_[_field_][1]+1]})
-                self.Data.append(_record_)
+                        self.Data[_header_[_field_]][_irec_,...] = _ur_[_ranges_[_field_][0]:_ranges_[_field_][1]+1]
+                            
             os.close(_fd_)
         else:
             print 'File '+fname+'  not found'
@@ -256,16 +252,107 @@ class RBD(object):
         self.Comments.append('Converted to FITS level-0 with oRBD.py version '+self.version)
         
         return
-
+        
     """-----------------------------------------------------------------------------"""
-    
+    def writeFITS(self):
+
+        """
+        writeFITS:
+             A method class to write the SST data as a FITS file. The fits format used is a binary table. 
+             Then the file has a primary and a table header. It also defines the name of the fits file as
+
+             sst_[integration | subintegration | auxiliary]_YYYY-MM-DDTHH:MM:SS.SSS-HH:MM:SS.SSS_level0.fits
+
+             integration is a RS file, subintegration is a RF file and auxiliary is a BI file
+        
+        Change Record:
+             First written by Guigue @ Sampa - 2017-08-26
+        
+        """
+
+        _hhmmss_ = self.timeSpan()
+        
+        _fits_fname_ = 'sst_'  + self.MetaData['SSTType'].lower() + '_' + self.MetaData['ISODate'] + 'T' + _hhmmss_[0]+'-' + _hhmmss_[1] + '_level0.fits'
+        
+        self.MetaData.update({'FITSfname':_fits_fname_})
+
+        _hdu_ = fits.PrimaryHDU()
+        _hdu_.header.append(('origin','CRAAM/Universidade Presbiteriana Mackenzie',''))
+        _hdu_.header.append(('telescop','Solar Submillimeter Telescope',''))
+        _hdu_.header.append(('date-obs',self.MetaData['ISODate'],''))
+
+        _hdu_.header.append(('t_start',self.MetaData['ISODate']+'T'+ _hhmmss_[0]))
+        _hdu_.header.append(('t_end',self.MetaData['ISODate']+'T'+ _hhmmss_[1]))
+        _hdu_.header.append(('data_typ',self.MetaData['SSTType']))
+        _hdu_.header.append(('origfile',self.MetaData['RBDFileName']))
+        _hdu_.header.append(('frequen','212 GHz ch=1,2,3,4; 405 GHz ch=5,6'))
+        
+        for i in range(len(self.Comments)):
+            _hdu_.header.append(('history',self.Comments[i]))
+
+        _fits_cols_ = []
+        for _child_ in self.header:
+            
+            # xml table. Children have three fields
+            _ttype_   = _child_[0].text        # Name
+            _tform_   = _child_[1].text        # (Dimension) Format
+            _tunit_   = _child_[3].text        # Unit
+            _tzero_   = 0                    # Effective 0 (to mimmic an unsigned integer)
+            _tscal_   = 1.0                  # Data Scaling Factor
+            _tdim_    = _child_[1].text        # Dimension  
+            _VarType_ = _child_[2].text      # Variable type
+                        
+            if ( _VarType_ == 'xs:int') : 
+                _tform_ += 'J'
+                _np_form_ = np.dtype('i4')
+                
+            if ( _VarType_ == 'xs:unsignedShort') :
+                _tform_ += 'I'
+                _tzero_ = 32768
+                _np_form_ = np.dtype('u2')
+                
+            if ( _VarType_ == 'xs:short'):
+                _tform_ += 'I'
+                _np_form_ = np.dtype('i2')
+                
+            if ( _VarType_ == 'xs:byte') :
+                _tform_ += 'B'
+                _np_form_=np.dtype('b')
+                
+            if ( _VarType_ == 'xs:float') :
+                _tform_ += 'E'
+                _np_form_=np.dtype('f4')
+
+            _c_ = fits.Column(name   = _ttype_  ,
+                              format = _tform_  ,
+                              unit   = _tunit_  ,
+                              bscale = _tscal_  ,
+                              bzero  = _tzero_  ,
+                              dim    = _tdim_   ,
+                              array  = self.Data[_ttype_])
+            _fits_cols_.append(_c_)
+                
+        _coldefs_ = fits.ColDefs(_fits_cols_)
+        _tbhdu_   = fits.BinTableHDU.from_columns(_coldefs_)
+        _hduList_ = fits.HDUList([_hdu_,_tbhdu_])
+        
+        if os.path.exists(_fits_fname_) :
+            print 'File '+_fits_fname_+ 'already exist. Aborting....'
+            sys.exit(1) 
+        else:
+            _hduList_.writeto(_fits_fname_)
+            
+        return 
+
+    """------------------------------------------------------------------------------------ """
+
     def __init__(self,fname='rs19990501'):
 
         self.fname = fname
-        self.Data   = []
+        self.Data   = {}
         self.MetaData = {}
         self.Comments = []
-        self.version = '20170824T23:14'
+        self.version = '20170826T20:35'
         self.read_xml_header(fname)
         return 
 
