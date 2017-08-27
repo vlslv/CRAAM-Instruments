@@ -73,10 +73,10 @@ class RBD(object):
     def getISOTime(self,hustime):
         """
         getISOTime:
-           Convert from Hus (hundred of milliseconds) to HH:MM:SS.SSSS
+           Convert from Hus (hundred of microseconds) to HH:MM:SS.SSSS
 
         inputs: 
-           hustime : a 4bytes integer with the time in hundred of milliseconds since 0 UT. 
+           hustime : a 4bytes integer with the time in hundred of microseconds since 0 UT. 
                      hustime is the SST time format.
 
         Change Record:
@@ -279,14 +279,22 @@ class RBD(object):
         _hdu_ = fits.PrimaryHDU()
         _hdu_.header.append(('origin','CRAAM/Universidade Presbiteriana Mackenzie',''))
         _hdu_.header.append(('telescop','Solar Submillimeter Telescope',''))
-        _hdu_.header.append(('date-obs',self.MetaData['ISODate'],''))
+        _hdu_.header.append(('observat','CASLEO',''))
+        _hdu_.header.append(('station','Lat = -31.79897222, Lon = -69.29669444, Height = 2.491 km',''))
+        _hdu_.header.append(('tz','-3',''))
 
-        _hdu_.header.append(('t_start',self.MetaData['ISODate']+'T'+ _hhmmss_[0]))
-        _hdu_.header.append(('t_end',self.MetaData['ISODate']+'T'+ _hhmmss_[1]))
-        _hdu_.header.append(('data_typ',self.MetaData['SSTType']))
-        _hdu_.header.append(('origfile',self.MetaData['RBDFileName']))
-        _hdu_.header.append(('frequen','212 GHz ch=1,2,3,4; 405 GHz ch=5,6'))
-        
+        _hdu_.header.append(('date-obs',self.MetaData['ISODate'],''))
+        _hdu_.header.append(('t_start',self.MetaData['ISODate']+'T'+ _hhmmss_[0],''))
+        _hdu_.header.append(('t_end',self.MetaData['ISODate']+'T'+ _hhmmss_[1],''))
+        _hdu_.header.append(('data_typ',self.MetaData['SSTType'],''))
+        _hdu_.header.append(('origfile',self.MetaData['RBDFileName'],''))
+        _hdu_.header.append(('frequen','212 GHz ch=1,2,3,4; 405 GHz ch=5,6',''))
+
+        _hdu_.header.append(('comment','Time is in hundred of microseconds (Hus) since 0 UT',''))
+        _hdu_.header.append(('comment','ADCu = Analog to Digital Conversion units. Proportional to Voltage',''))
+        _hdu_.header.append(('comment','mDeg = milli degree',''))
+        _hdu_.header.append(('comment','Temperatures are in Celsius',''))
+                            
         for i in range(len(self.Comments)):
             _hdu_.header.append(('history',self.Comments[i]))
 
