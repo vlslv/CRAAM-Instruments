@@ -358,18 +358,12 @@ class RBD(object):
         _hdu_.header.append(('origfile',self.MetaData['RBDFileName'],'SST Raw Binary Data file'))
         _hdu_.header.append(('frequen','212 GHz ch=1,2,3,4; 405 GHz ch=5,6',''))
 
-        # About the Copyright 
-        _hdu_.header.append(('comment','This data is property of Universidade Presbiteriana Mackenzie.',''))
-        _hdu_.header.append(('comment','The Centro de Radio Astronomia e Astrofisica Mackenzie is ',''))
-        _hdu_.header.append(('comment','responsible for its administration and managing.','')) 
-        _hdu_.header.append(('comment','Grant of use permission is given for Academic purposes only.',''))
-        _hdu_.header.append(('comment','In case of doubt, please contact guigue@craam.mackenzie.br',''))
-
-        # About the units
-        _hdu_.header.append(('comment','Time is in hundred of microseconds (Hus) since 0 UT',''))
-        _hdu_.header.append(('comment','ADCu = Analog to Digital Conversion units. Proportional to Voltage',''))
-        _hdu_.header.append(('comment','mDeg = milli degree',''))
-        _hdu_.header.append(('comment','Temperatures are in Celsius',''))
+        # About the Copyright
+        _hdu_.header.append(('comment','COPYRIGHT. Grant of use.',''))
+        _hdu_.header.append(('comment','This data is property of Universidade Presbiteriana Mackenzie.'))
+        _hdu_.header.append(('comment','The Centro de Radio Astronomia e Astrofisica Mackenzie is reponsible'))
+        _hdu_.header.append(('comment','for its distribution. Grant of use permission is given for Academic ')) 
+        _hdu_.header.append(('comment','purposes only. When in doubt, contact guigue@craam.mackenzie.br'))
                             
         for i in range(len(self.History)):
             _hdu_.header.append(('history',self.History[i]))
@@ -421,6 +415,12 @@ class RBD(object):
                 
         _coldefs_ = fits.ColDefs(_fits_cols_)
         _tbhdu_   = fits.BinTableHDU.from_columns(_coldefs_)
+        # About the units
+        _tbhdu_.header.append(('comment','Time is in hundred of microseconds (Hus) since 0 UT',''))
+        _tbhdu_.header.append(('comment','ADCu = Analog to Digital Conversion units. Proportional to Voltage',''))
+        _tbhdu_.header.append(('comment','mDeg = milli degree',''))
+        _tbhdu_.header.append(('comment','Temperatures are in Celsius',''))
+
         _hduList_ = fits.HDUList([_hdu_,_tbhdu_])
         
         if os.path.exists(_fits_fname_) :
