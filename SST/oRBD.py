@@ -168,8 +168,12 @@ class RBD(object):
             
         if (len(_name1_) == 8):
             date=str(int(_name1_[2:4])+1900) + '-' + _name1_[4:6] + '-' + _name1_[6:8]
-        else:
+        elif (len(_name1_) == 9):
             date=str(int(_name1_[2:5])+1900) + '-' + _name1_[5:7] + '-' + _name1_[7:9]
+        else:
+            print 'Wrong RBD Filename. Aborting...'
+            sys.exit(1)
+            
         if (len(_name2_) == 4) :
             time=_name2_[0:2]+':'+_name2_[2:4]
         else:
@@ -333,8 +337,14 @@ class RBD(object):
         """
 
         _hhmmss_ = self.timeSpan()
+
+        if len(self.MetaData['ISODate']) == 1 :
+            _isodate_ = self.MetaData['ISODate']
+        else: 
+            _isodate_ = self.MetaData['ISODate'][0]
+             
+        _fits_fname_ = 'sst_'  + self.MetaData['SSTType'].lower() + '_' + _isodate_ + 'T' + _hhmmss_[0]+'-' + _hhmmss_[1] + '_level0.fits'
         
-        _fits_fname_ = 'sst_'  + self.MetaData['SSTType'].lower() + '_' + self.MetaData['ISODate'] + 'T' + _hhmmss_[0]+'-' + _hhmmss_[1] + '_level0.fits'
         
         self.MetaData.update({'FITSfname':_fits_fname_})
 
@@ -351,18 +361,22 @@ class RBD(object):
         _hdu_.header.append(('station','Lat = -31.79897222, Lon = -69.29669444, Height = 2.491 km',''))
         _hdu_.header.append(('tz','GMT-3',''))
 
-        _hdu_.header.append(('date-obs',self.MetaData['ISODate'],''))
-        _hdu_.header.append(('t_start',self.MetaData['ISODate']+'T'+ _hhmmss_[0],''))
-        _hdu_.header.append(('t_end',self.MetaData['ISODate']+'T'+ _hhmmss_[1],''))
+        _hdu_.header.append(('date-obs',_isodate_,''))
+        _hdu_.header.append(('t_start',_isodate_+'T'+ _hhmmss_[0],''))
+        _hdu_.header.append(('t_end',_isodate_+'T'+ _hhmmss_[1],''))
         _hdu_.header.append(('data_typ',self.MetaData['SSTType'],''))
-        _hdu_.header.append(('origfile',self.MetaData['RBDFileName'],'SST Raw Binary Data file'))
+        if len(self.MetaData['RBDFileName']) == 1:
+            _hdu_.header.append(('origfile',self.MetaData['RBDFileName'],'SST Raw Binary Data file'))
+        else:
+            for iRBD in self.MetaData['RBDFileName']:_hdu_.header.append(('origfile',iRBD,'SST Raw Binary Data file'))
+                
         _hdu_.header.append(('frequen','212 GHz ch=1,2,3,4; 405 GHz ch=5,6',''))
 
         # About the Copyright
         _hdu_.header.append(('comment','COPYRIGHT. Grant of use.',''))
-        _hdu_.header.append(('comment','This data is property of Universidade Presbiteriana Mackenzie.'))
+        _hdu_.header.append(('comment','These data are property of Universidade Presbiteriana Mackenzie.'))
         _hdu_.header.append(('comment','The Centro de Radio Astronomia e Astrofisica Mackenzie is reponsible'))
-        _hdu_.header.append(('comment','for its distribution. Grant of use permission is given for Academic ')) 
+        _hdu_.header.append(('comment','for their distribution. Grant of use permission is given for Academic ')) 
         _hdu_.header.append(('comment','purposes only. When in doubt, contact guigue@craam.mackenzie.br'))
                             
         for i in range(len(self.History)):
@@ -433,7 +447,54 @@ class RBD(object):
 
     """------------------------------------------------------------------------------------ """
 
-    def __init__(self,fname='rs19990501'):
+    def concat(self,RBDlist) :
+        
+        self.fname =[]
+        self.Data = {}
+        self.Metadata = {}
+        self.header = RBDlist[0].header
+        
+        ISODate = []
+        ISOTime = []
+        RBDFileName = []
+        SSTType = RBDlist[0].MetaData['SSTType']
+        
+        primDimension= 0
+        TagList = list(RBDlist[0].MetaData.viewkeys())
+        for iRBD in RBDlist :
+            primDimension += iRBD.Data['time'].shape[0]
+            ISODate.append(iRBD.MetaData['ISODate'])
+            ISOTime.append(iRBD.MetaData['ISOTime'])
+            RBDFileName.append(iRBD.MetaData['RBDFileName'])
+            
+        self.MetaData = { 'ISODate': ISODate,
+                          'ISOTime': ISOTime,
+                          'RBDFileName': RBDFileName,
+                          'SSTType':SSTType}
+        
+                          
+        TagList = list(RBDlist[0].Data.viewkeys())
+        for iTag in TagList:
+            secDimension=0
+            if len(RBDlist[0].Data[iTag].shape) > 1 :
+                secDimension = RBDlist[0].Data[iTag].shape[1]
+            if secDimension == 0 :
+                self.Data.update( { iTag: np.array(np.empty(primDimension,dtype=RBDlist[0].Data[iTag].dtype)) } )
+            else:
+                self.Data.update( { iTag: np.array(np.empty([primDimension,secDimension],dtype=RBDlist[0].Data[iTag].dtype)) } )
+
+        iFirst=0
+        for iRBD in RBDlist:
+            iLast=iFirst+iRBD.Data['time'].shape[0]
+            for iTag in TagList: self.Data[iTag][iFirst:iLast]=iRBD.Data[iTag]
+            iFirst=iLast
+                
+        return 
+            
+            
+    """------------------------------------------------------------------------------------ """
+
+    def __init__(self,fname='rs990501'):
 
         self.fname = fname
         self.Data   = {}

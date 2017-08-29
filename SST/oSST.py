@@ -6,6 +6,7 @@ from enum import IntEnum
 
 # Our methods
 import astronomical_methods as am
+import oRBD
 
 class SST(object):
 
