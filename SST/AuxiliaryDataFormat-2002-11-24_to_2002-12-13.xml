@@ -18,7 +18,7 @@ Structure = (from IDL)
                    elepos:        0.0            ,$ 
                    azierr:        0.0            ,$ 
                    eleerr:        0.0            ,$
-                   adc:           intarr(nchan)  ,$ 
+                   adc:           lonarr(nchan)  ,$ 
                    sigma:         fltarr(nchan)  ,$ 
                    gps_status:    0              ,$ 
                    daq_status:    0              ,$ 
@@ -88,7 +88,7 @@ Structure = (from IDL)
     <SSTDataVariable VarName="adc">
         <VarName>adc</VarName>
         <VarLength>6</VarLength>
-        <VarType>xs:short</VarType>
+        <VarType>xs:int</VarType>
         <VarUnit>ADCu</VarUnit>
     </SSTDataVariable>
     
