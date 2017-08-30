@@ -321,12 +321,11 @@ class RBD(object):
 
         _hhmmss_ = self.timeSpan()
 
-        if len(self.MetaData['ISODate']) == 1 :
-            _isodate_ = self.MetaData['ISODate']
-        else: 
-            _isodate_ = self.MetaData['ISODate'][0]
-             
-        self.writeFITSwithName('sst_'  + self.MetaData['SSTType'].lower() + '_' + _isodate_ + 'T' + _hhmmss_[0]+'-' + _hhmmss_[1] + '_level0.fits')
+        self.writeFITSwithName('sst_'  +
+                               self.MetaData['SSTType'].lower() + '_' +
+                               self.MetaData['ISODate'] + 'T' +
+                               _hhmmss_[0]+'-' + _hhmmss_[1] +
+                               '_level0.fits')
 
         return
 
@@ -353,11 +352,7 @@ class RBD(object):
 
         self.MetaData.update({'FITSfname':FITSfname})
 
-        if len(self.MetaData['ISODate']) == 1 :
-            _isodate_ = self.MetaData['ISODate']
-        else: 
-            _isodate_ = self.MetaData['ISODate'][0]
-        
+        _isodate_ = self.MetaData['ISODate']
         _hhmmss_ = self.timeSpan()
         
         _hdu_ = fits.PrimaryHDU()
@@ -489,16 +484,16 @@ class RBD(object):
         self.header = RBDlist[0].header
         self.bin_header=RBDlist[0].bin_header
         
-        ISODate = []
+
         ISOTime = []
         RBDFileName = []
         SSTType = RBDlist[0].MetaData['SSTType']
+        ISODate = RBDlist[0].MetaData['ISODate']
         
         primDimension= 0
         TagList = list(RBDlist[0].MetaData.viewkeys())
         for iRBD in RBDlist :
             primDimension += iRBD.Data['time'].shape[0]
-            ISODate.append(iRBD.MetaData['ISODate'])
             ISOTime.append(iRBD.MetaData['ISOTime'])
             RBDFileName.append(iRBD.MetaData['RBDFileName'])
             
