@@ -1,5 +1,4 @@
 # External methods
-
 import sys, string, os, struct, glob
 import numpy as np
 import xml.etree.ElementTree as xmlet
@@ -137,7 +136,7 @@ class RBD(object):
 
     """ -------------------------------------------------------------------------------------"""
     
-    def getISODate(self,fname):
+    def getISODate(self):
         """ 
         getISODate:
         Converts an SST filename in a ISO Date format. e.g.: RS1070812.1500 -> 2007-08-12
@@ -152,7 +151,7 @@ class RBD(object):
         Change Record:
         First written by Guigue @ Sampa on 2017-08-19
         """
-        _bname_=self.base_name(fname)                                        # Get the base name (remove /path/to/file )
+        _bname_=self.base_name(self.RBDfname)                                # Get the base name (remove /path/to/file )
         try:
             _name1_,_name2_=_bname_.strip().split(".")                       # Does it have hours?
         except:
@@ -171,7 +170,7 @@ class RBD(object):
         elif (len(_name1_) == 9):
             date=str(int(_name1_[2:5])+1900) + '-' + _name1_[5:7] + '-' + _name1_[7:9]
         else:
-            print 'Wrong RBD Filename. Aborting...'
+            print self.RBDfname+ '  is a wrong RBD Filename. Aborting...'
             sys.exit(1)
             
         if (len(_name2_) == 4) :
@@ -237,18 +236,19 @@ class RBD(object):
 
     """-----------------------------------------------------------------------------------------"""
     
-    def read_xml_header(self,fname):
-        self.getISODate(fname)       
+    def read_xml_header(self):
+        self.getISODate()       
         _tt_        = oRBD.DataTimeSpan()
         _hfname_    = _tt_.findHeaderFile(SSTType=self.MetaData['SSTType'],SSTDate=self.MetaData['ISODate'])
-        _xmlheader_ = xmlet.parse(_hfname_)
+        _xmlheader_ = xmlet.parse(self.PathToXML + _hfname_)
         self.hfname = _hfname_
         self.header = _xmlheader_.getroot()
         return
     
     """-----------------------------------------------------------------------------"""
     
-    def readRBDinDictionary(self):
+    def readRBDinDictionary(self,RBDfname='rs990501'):
+        
         """
         readRBDinDictionary
            It is the class method used to read a SST Raw Binary Data (RBD). The data is
@@ -261,14 +261,17 @@ class RBD(object):
 
         """
 
+        self.RBDfname = RBDfname
+        self.read_xml_header()
         self.define_fmt()
+        
         _fmt_    = self.bin_header['fmt']
         _header_ = self.bin_header['names']
         _ranges_ = self.bin_header['ranges']
         _Nfields_= len(_header_)
         
-        if os.path.exists(self.fname) :
-            _fd_         = os.open(self.fname,os.O_RDONLY)
+        if os.path.exists(self.InputPath+self.RBDfname) :
+            _fd_         = os.open(self.InputPath+self.RBDfname,os.O_RDONLY)
             _nrec_       = os.fstat(_fd_).st_size / struct.calcsize(_fmt_)
 
             for child in self.header:
@@ -309,12 +312,28 @@ class RBD(object):
                             
             os.close(_fd_)
         else:
-            print 'File '+fname+'  not found'
+            print 'File '+self.InputPath+self.RBDfname+'  not found'
 
         self.History.append('Converted to FITS level-0 with oRBD.py version '+self.version)
         
         return
+
+    """-----------------------------------------------------------------------------"""
+    def CleanOutputPath(self):
         
+        """
+        It seems that fits.writeto does not understand the meaning of '~/'
+        We chhange for $HOME/
+        """
+        path = self.OutputPath.strip().split('/')
+        if (path[0] == '~') : path[0]=os.environ['HOME']
+        newpath=''
+        for ipath in path:
+            newpath+=ipath+'/'
+        if newpath[-2]=='/' : newpath=newpath[0:-1]
+        self.OutputPath=newpath
+        return
+    
     """-----------------------------------------------------------------------------"""
 
     def writeFITS(self) :
@@ -372,11 +391,11 @@ class RBD(object):
         _hdu_.header.append(('t_start',_isodate_+'T'+ _hhmmss_[0],''))
         _hdu_.header.append(('t_end',_isodate_+'T'+ _hhmmss_[1],''))
         _hdu_.header.append(('data_typ',self.MetaData['SSTType'],''))
-        if len(self.MetaData['RBDFileName']) == 1:
-            _hdu_.header.append(('origfile',self.MetaData['RBDFileName'],'SST Raw Binary Data file'))
-        else:
+        if isinstance(self.MetaData['RBDFileName'],list) :
             for iRBD in self.MetaData['RBDFileName']:_hdu_.header.append(('origfile',iRBD,'SST Raw Binary Data file'))
-                
+        else:
+            _hdu_.header.append(('origfile',self.MetaData['RBDFileName'],'SST Raw Binary Data file'))
+            
         _hdu_.header.append(('frequen','212 GHz ch=1,2,3,4; 405 GHz ch=5,6',''))
 
         # About the Copyright
@@ -384,7 +403,7 @@ class RBD(object):
         _hdu_.header.append(('comment','These data are property of Universidade Presbiteriana Mackenzie.'))
         _hdu_.header.append(('comment','The Centro de Radio Astronomia e Astrofisica Mackenzie is reponsible'))
         _hdu_.header.append(('comment','for their distribution. Grant of use permission is given for Academic ')) 
-        _hdu_.header.append(('comment','purposes only. When in doubt, contact guigue@craam.mackenzie.br'))
+        _hdu_.header.append(('comment','purposes only.'))
                             
         for i in range(len(self.History)):
             _hdu_.header.append(('history',self.History[i]))
@@ -443,12 +462,14 @@ class RBD(object):
         _tbhdu_.header.append(('comment','Temperatures are in Celsius',''))
 
         _hduList_ = fits.HDUList([_hdu_,_tbhdu_])
-        
-        if os.path.exists(self.MetaData['FITSfname']) :
-            print 'File '+ self.MetaData['FITSfname']+ 'already exist. Aborting....'
+
+        self.CleanOutputPath() 
+            
+        if os.path.exists(self.OutputPath+self.MetaData['FITSfname']) :
+            print 'File '+ self.OutputPath+self.MetaData['FITSfname']+ 'already exist. Aborting....'
             sys.exit(1) 
         else:
-            _hduList_.writeto(self.MetaData['FITSfname'])
+            _hduList_.writeto(self.OutputPath+self.MetaData['FITSfname'])
             
         return 
 
@@ -478,7 +499,7 @@ class RBD(object):
 
         """
         
-        self.fname =[]
+        self.RBDfname =[]
         self.Data = {}
         self.Metadata = {}
         self.header = RBDlist[0].header
@@ -558,8 +579,8 @@ class RBD(object):
             if ListToPreserve.count(iKey) == 0 :
                 del self.Data[iKey]
 
-        for iChild in self.header:
-            if ListToPreserve.count(iChild.attrib['VarName']) == 0 :
+        for iChild in range(len(self.header)):
+            if ListToPreserve.count(self.header[iChild].attrib['VarName']) == 0 :
                 self.header.remove(iChild)
 
         del self.bin_header
@@ -568,14 +589,30 @@ class RBD(object):
 
     """------------------------------------------------------------------------------------ """
 
-    def __init__(self,fname='rs990501'):
+    def __init__(self,PathToXML='',InputPath='./',OutputPath='./'):
 
-        self.fname = fname
+        # Get the Environment path
+        if (isinstance(PathToXML,str) and len(PathToXML) == 0):
+            if ('RBDXMLPATH' in os.environ.keys()):
+                if os.environ['RBDXMLPATH'][-1] != '/' :
+                    self.PathToXML = os.environ['RBDXMLPATH']+'/'
+                else:
+                    self.PathToXML = os.environ['RBDXMLPATH']
+            else:
+                self.PathToXML = './'
+        else:
+            self.PathToXML=PathToXML
+
+        if OutputPath[-1] != '/' : OutputPath+='/'
+        if InputPath[-1] != '/' : InputPath+='/'
+        
+        self.OutputPath = OutputPath
+        self.InputPath  = InputPath
+
         self.Data   = {}
         self.MetaData = {}
         self.History = []
-        self.version = '20170829T12:08'
-        self.read_xml_header(fname)
+        self.version = '20170830T16:55'
         return 
 
 ######################################################################################
@@ -634,6 +671,16 @@ class DataTimeSpan(object):
     """------------------------------------------------------------------------"""
 
     def __init__(self):
-        _tt_ = xmlet.parse('SSTDataFormatTimeSpanTable.xml')
+
+        # Get the Environment path
+        if ('RBDXMLPATH' in os.environ.keys()):
+            if os.environ['RBDXMLPATH'][-1] != '/' :
+                self.PathToXML = os.environ['RBDXMLPATH']+'/'
+            else:
+                self.PathToXML = os.environ['RBDXMLPATH']
+        else:
+            self.PathToXML = './'
+
+        _tt_ = xmlet.parse(self.PathToXML+'SSTDataFormatTimeSpanTable.xml')
         self.table = _tt_.getroot()
         return
