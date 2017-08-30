@@ -448,6 +448,28 @@ class RBD(object):
     """------------------------------------------------------------------------------------ """
 
     def concat(self,RBDlist) :
+        """
+        concat:
+               A method to concatenate two or more RBD objects. 
+               The procedures doesn't check for the similarity of the objects.
+               The user must provide two objects with the same Data structure. 
+
+               The procedure doesn't check neither the time sequence. The user 
+               must take care of it.
+
+        use:
+              import oRBD
+              d1=oRBD.RBD([RBD filename1])
+              d1.readRBDinDictionary()
+              d2=oRBD.RBD([RBD filename2])
+              d2.readRBDinDictionary()
+              d=oRBD.RBD()
+              d=d.concat([d1,d2])
+
+        Change Record:
+              First written by Guigue @ Sampa - 2017-09-08         
+
+        """
         
         self.fname =[]
         self.Data = {}
@@ -495,6 +517,31 @@ class RBD(object):
     """------------------------------------------------------------------------------------ """
 
     def reduced(self):
+        """
+        reduced:
+             It produces a reduced form of the original data. It saves only the following columns in the 
+             table:
+
+             time    : time in Hus
+             azipos  : encoder's azimuth
+             elepos  : encoder's elevation
+             adc or adcval : receiver's output
+             opmode  : oberving mode
+             target  : target observed
+             x_off   : scan offset in azimuth
+             y_off   : scan offset in elevation
+    
+        use:
+            import oRBD
+            d=oRBD.RBD([RBD filename])
+            d.readRBDinDictionary()
+            d.reduced()
+
+        Change Record:
+
+            First written by Guigue @ Sampa - 2017-08-30
+
+        """
 
         ListToPreserve = ['time','adc','adcval','elepos','azipos','opmode','target','x_off','y_off']
 
