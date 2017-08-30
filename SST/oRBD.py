@@ -316,7 +316,22 @@ class RBD(object):
         return
         
     """-----------------------------------------------------------------------------"""
-    def writeFITS(self):
+
+    def writeFITS(self) :
+
+        _hhmmss_ = self.timeSpan()
+
+        if len(self.MetaData['ISODate']) == 1 :
+            _isodate_ = self.MetaData['ISODate']
+        else: 
+            _isodate_ = self.MetaData['ISODate'][0]
+             
+        self.writeFITSwithName('sst_'  + self.MetaData['SSTType'].lower() + '_' + _isodate_ + 'T' + _hhmmss_[0]+'-' + _hhmmss_[1] + '_level0.fits')
+
+        return
+
+    def writeFITSwithName(self,FITSfname):
+
 
         """
         writeFITS:
@@ -336,18 +351,15 @@ class RBD(object):
         
         """
 
-        _hhmmss_ = self.timeSpan()
+        self.MetaData.update({'FITSfname':FITSfname})
 
         if len(self.MetaData['ISODate']) == 1 :
             _isodate_ = self.MetaData['ISODate']
         else: 
             _isodate_ = self.MetaData['ISODate'][0]
-             
-        _fits_fname_ = 'sst_'  + self.MetaData['SSTType'].lower() + '_' + _isodate_ + 'T' + _hhmmss_[0]+'-' + _hhmmss_[1] + '_level0.fits'
         
+        _hhmmss_ = self.timeSpan()
         
-        self.MetaData.update({'FITSfname':_fits_fname_})
-
         _hdu_ = fits.PrimaryHDU()
 
         #
@@ -437,11 +449,11 @@ class RBD(object):
 
         _hduList_ = fits.HDUList([_hdu_,_tbhdu_])
         
-        if os.path.exists(_fits_fname_) :
-            print 'File '+_fits_fname_+ 'already exist. Aborting....'
+        if os.path.exists(self.MetaData['FITSfname']) :
+            print 'File '+ self.MetaData['FITSfname']+ 'already exist. Aborting....'
             sys.exit(1) 
         else:
-            _hduList_.writeto(_fits_fname_)
+            _hduList_.writeto(self.MetaData['FITSfname'])
             
         return 
 
@@ -475,6 +487,7 @@ class RBD(object):
         self.Data = {}
         self.Metadata = {}
         self.header = RBDlist[0].header
+        self.bin_header=RBDlist[0].bin_header
         
         ISODate = []
         ISOTime = []
