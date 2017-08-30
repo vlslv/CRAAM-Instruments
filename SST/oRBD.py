@@ -494,6 +494,25 @@ class RBD(object):
             
     """------------------------------------------------------------------------------------ """
 
+    def reduced(self):
+
+        ListToPreserve = ['time','adc','adcval','elepos','azipos','opmode','target','x_off','y_off']
+
+        
+        for iKey in self.Data.keys():
+            if ListToPreserve.count(iKey) == 0 :
+                del self.Data[iKey]
+
+        for iChild in self.header:
+            if ListToPreserve.count(iChild.attrib['VarName']) == 0 :
+                self.header.remove(iChild)
+
+        del self.bin_header
+                
+        return
+
+    """------------------------------------------------------------------------------------ """
+
     def __init__(self,fname='rs990501'):
 
         self.fname = fname
