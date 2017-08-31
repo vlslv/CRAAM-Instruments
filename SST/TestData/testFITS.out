@@ -1,0 +1,50 @@
+testfits
+;Read       22399 records inbi1010822
+;Total       22399
+;List too short to read      1000000 records
+;MRDFITS: Binary table.  29 columns by  22399 rows.
+;bi1010822 and sst_auxiliary_2001-08-22T14:04:40.034-23:45:04.714_level0.fits
+;Read       34284 records inbi1021019
+;Total       34284
+;List too short to read      1000000 records
+;MRDFITS: Binary table.  29 columns by  34284 rows.
+;bi1021019 and sst_auxiliary_2002-10-19T11:24:39.704-21:37:04.235_level0.fits
+;Read       36517 records inbi1021202
+;Total       36517
+;List too short to read      1000000 records
+;MRDFITS: Binary table.  26 columns by  36517 rows.
+;bi1021202 and sst_auxiliary_2002-12-02T02:01:34.154-23:18:05.244_level0.fits
+;Read       40132 records inbi1021221
+;Total       40132
+;List too short to read      1000000 records
+;MRDFITS: Binary table.  25 columns by  40132 rows.
+;bi1021221 and sst_auxiliary_2002-12-21T11:15:57.732-22:26:07.212_level0.fits
+;Read       53500 records in rs1020715.1300
+;Total       53500
+;List too short to read      1000000 records
+;MRDFITS: Binary table.  17 columns by  53500 rows.
+;rs1020715.1300 and sst_integration_2002-07-15T13:24:19.605-13:59:59.592_level0.fits
+;Read       12800 records in rs1021205.2200
+;Total       12800
+;List too short to read      1000000 records
+;MRDFITS: Binary table.  16 columns by  12800 rows.
+;rs1021205.2200 and sst_integration_2002-12-05T21:59:58.728-22:08:31.215_level0.fits
+;Read       81100 records in rs1061206.2100
+;Total       81100
+;List too short to read      1000000 records
+;MRDFITS: Binary table.  16 columns by  81100 rows.
+;rs1061206.2100 and sst_integration_2006-12-06T20:59:58.423-21:54:05.746_level0.fits
+;Read       27000 records in rs990909.1700
+;Total       27000
+;List too short to read      1000000 records
+;MRDFITS: Binary table.  17 columns by  27000 rows.
+;rs990909.1700 and sst_integration_1999-09-09T16:59:52.056-17:57:40.420_level0.fits
+;MRDFITS: Binary table.  16 columns by  179800 rows.
+;Read       89900 records in rs1150621.1700
+;Total       89900
+;List too short to read      1000000 records
+;Read       89900 records in rs1150621.1800
+;Total       89900
+;List too short to read      1000000 records
+;rs1150621.1700   rs1150621.1800 rs1150621.17-18-concat.fits
+;MRDFITS: Binary table.  8 columns by  179800 rows.

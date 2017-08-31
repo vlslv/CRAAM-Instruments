@@ -1,4 +1,26 @@
-# Simple test
+#####################################################################
+#
+# testFITS.py
+#
+# This is the first phase of the conversion tests for the SST RBD
+# files. It creates fits files for every different RBD format. It also
+# checks come functionalities, like writing in a different directory,
+# or giving a non-standard name to the fits file.
+#
+# Remember to set the environment variable $RBDXMLPATH where the
+# xml files are stored in the system.
+#
+# Change the path where the actual data are, also.
+#
+# After running this script, you can run the IDL pro testFITS.pro
+#
+# Use:
+#  python testFITS.py
+#
+# Written
+#  Guigue@gcastro.net - 2017-08-31
+#
+##################################################################
 
 import oRBD
 
