@@ -35,6 +35,16 @@ class RBD(object):
 #         The description of the data is included in the XML files. These files should be in the same
 #         directory of the python program.
 #
+#         New methods were added to this version.
+#           writeFITSwithName() : allows to give a non-standard name to the fits file
+#           concat() : allows to concatenate two or more RBD objects
+#           reduced() : creates a reduced version of the RBD object, leaving the most used variables.
+#
+#        Also the calling sequence was changed. Now when creating an object only some basic parameters
+#        are defined. For instance the input and output directories. You may changed them afterwards
+#        >>> d.InputPath = /path/to/files
+#        >>> d.OutputPath = /path/to/fits
+#
 #    Tests:
 #
 #         In order to assess the accuracy of the conversion to fits, a test was carried out using the
@@ -52,20 +62,27 @@ class RBD(object):
 #         was compared doing a substraction, and obtaining the mean and standard deviation. Were the
 #         mean different from zero, the program stopped and issue a message.  We found many tiny errors
 #         in the python procedures oRBD, that were corrected, repeating the test until mean = 0.
-#         See testFITS.pro 
+#         See testRBD.py and testFITS.pro 
 #
 #    Use:
+#            It is recommended to set the path where the XML files are. For instance
+#            $ export RBDXMLPATH=/path/to/xmlfiles
+#            > setenv RBDXMLPATH /path/to/xmlfiles
+#
 #            >>> import oRBD
-#            >>> d=oRBD.RBD([SST filename])
-#            >>> d.readRBDinDictionary()
+#            >>> d=oRBD.RBD(InputPath=[path],OutputPath=[path])
+#            >>> d.readRBDinDictionary([RBD filename])
 #            >>> d.writeFITS()
+#            If you want to put a non-standar name use
+#            >>> d.writeFITSwithName([FITS filename])
+#
 #            Check
 #            >>> from astropy.io import fits
 #            >>> h=fits.open([fits filename])
 #            >>> print h.info()
 #            >>> print(repr(h[0].header))             # Primary Header
 #            >>> print(repr(h[1].header))             # Table header
-#            >>> h[1].data                            # Actual Data
+#            >>> h[1].Data                            # Actual Data
 #
 #             Another check can be done with Solar Software
 #             IDL> r=mrdfits([fits filename],1,h,/unsigned) ; VERY important the unsigned parameter!!
@@ -264,6 +281,8 @@ class RBD(object):
         self.RBDfname = RBDfname
         self.read_xml_header()
         self.define_fmt()
+        self.CleanPaths()
+        self.History = []
         
         _fmt_    = self.bin_header['fmt']
         _header_ = self.bin_header['names']
@@ -319,7 +338,7 @@ class RBD(object):
         return
 
     """-----------------------------------------------------------------------------"""
-    def CleanOutputPath(self):
+    def CleanPaths(self):
         
         """
         It seems that fits.writeto does not understand the meaning of '~/'
@@ -332,6 +351,15 @@ class RBD(object):
             newpath+=ipath+'/'
         if newpath[-2]=='/' : newpath=newpath[0:-1]
         self.OutputPath=newpath
+
+        path = self.InputPath.strip().split('/')
+        if (path[0] == '~') : path[0]=os.environ['HOME']
+        newpath=''
+        for ipath in path:
+            newpath+=ipath+'/'
+        if newpath[-2]=='/' : newpath=newpath[0:-1]
+        self.InputPath=newpath
+
         return
     
     """-----------------------------------------------------------------------------"""
@@ -368,7 +396,7 @@ class RBD(object):
              First written by Guigue @ Sampa - 2017-08-26
         
         """
-
+        self.CleanPaths()
         self.MetaData.update({'FITSfname':FITSfname})
 
         _isodate_ = self.MetaData['ISODate']
@@ -463,7 +491,7 @@ class RBD(object):
 
         _hduList_ = fits.HDUList([_hdu_,_tbhdu_])
 
-        self.CleanOutputPath() 
+        self.CleanPaths() 
             
         if os.path.exists(self.OutputPath+self.MetaData['FITSfname']) :
             print 'File '+ self.OutputPath+self.MetaData['FITSfname']+ 'already exist. Aborting....'
@@ -498,13 +526,11 @@ class RBD(object):
               First written by Guigue @ Sampa - 2017-09-08         
 
         """
-        
         self.RBDfname =[]
         self.Data = {}
         self.Metadata = {}
         self.header = RBDlist[0].header
-        self.bin_header=RBDlist[0].bin_header
-        
+        self.History = RBDlist[0].History
 
         ISOTime = []
         RBDFileName = []
@@ -539,7 +565,9 @@ class RBD(object):
             iLast=iFirst+iRBD.Data['time'].shape[0]
             for iTag in TagList: self.Data[iTag][iFirst:iLast]=iRBD.Data[iTag]
             iFirst=iLast
-                
+
+        self.History.append('Concatenated Data')
+        
         return 
             
             
@@ -579,9 +607,12 @@ class RBD(object):
             if ListToPreserve.count(iKey) == 0 :
                 del self.Data[iKey]
 
-        for iChild in range(len(self.header)):
-            if ListToPreserve.count(self.header[iChild].attrib['VarName']) == 0 :
-                self.header.remove(iChild)
+        ChildToRemove=[]
+        for iChild in self.header:
+            if ListToPreserve.count(iChild.attrib['VarName']) == 0 : ChildToRemove.append(iChild)
+        
+        for iChildToRemove in ChildToRemove : self.header.remove(iChildToRemove)
+        self.History.append('Reduced Data File. Selected Variables saved')
 
         del self.bin_header
                 
@@ -603,16 +634,13 @@ class RBD(object):
         else:
             self.PathToXML=PathToXML
 
-        if OutputPath[-1] != '/' : OutputPath+='/'
-        if InputPath[-1] != '/' : InputPath+='/'
-        
         self.OutputPath = OutputPath
         self.InputPath  = InputPath
 
         self.Data   = {}
         self.MetaData = {}
         self.History = []
-        self.version = '20170830T16:55'
+        self.version = '20170831T00:00' # 20 years after Lady Di passed away. 
         return 
 
 ######################################################################################
