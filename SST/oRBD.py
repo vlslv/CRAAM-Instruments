@@ -113,7 +113,13 @@ class RBD(object):
              First written by Guigue @ Sampa - 2017-08-26
 
         """
+        
+        # Sometimes time=0 is registered. We do not normally observe at 0 UT, in the contrary
+        # this false value is created by a wrong program. In order to know the starting and end
+        # time of the data, we serch for values other than 0
         _nonzero_=self.Data['time'].nonzero()
+        
+        # Return the first and last _nonzero_ time converted to ISO standards
         return self.getISOTime(self.Data['time'][_nonzero_[0][0]]) ,self.getISOTime(self.Data['time'][_nonzero_[0][-1]])
         
     
@@ -163,7 +169,7 @@ class RBD(object):
         the SST filename. 
 
         Output:
-        A vector [Type,ISODate]
+        A list [Type,ISODate]
 
         Change Record:
         First written by Guigue @ Sampa on 2017-08-19
@@ -181,15 +187,31 @@ class RBD(object):
         if (_SSTprefix_ == 'RS'): SSTtype='Integration'
         if (_SSTprefix_ == 'RF'): SSTtype='Subintegration'
         if (_SSTprefix_ == 'BI'): SSTtype='Auxiliary'
-            
-        if (len(_name1_) == 8):
+
+        # The SST RBD file names are formed of three parts:
+        #   2 characters to describe the type of data
+        #   8 or 9 characters to describe year, month and day
+        #   The separator dot .
+        #   For Data files (RS,RF) the time in the format HHMM
+        # Therefore a data file opened on 2017-08-31 at 17:32 hs
+        # is named RF1170831.1732. When the file correspond to
+        # Integrated Data the minutes are removed: RS1170831.1700
+        # For Auxiliary data, there is no indication of the time: BI1170831
+        #
+        # SST started to observe in 1999. The mechanism to create their filenames
+        # is wrong, since it takes the number of years since 1900.  Therefore
+        # the first year files started with 99, having the day description
+        # with 8 characters while, since 2000, files start with 100 and the
+        # day description has 9 characters. 
+        if (len(_name1_) == 8): 
             date=str(int(_name1_[2:4])+1900) + '-' + _name1_[4:6] + '-' + _name1_[6:8]
         elif (len(_name1_) == 9):
             date=str(int(_name1_[2:5])+1900) + '-' + _name1_[5:7] + '-' + _name1_[7:9]
         else:
             print self.RBDfname+ '  is a wrong RBD Filename. Aborting...'
             sys.exit(1)
-            
+
+        # From the time description of the RBD file name we get
         if (len(_name2_) == 4) :
             time=_name2_[0:2]+':'+_name2_[2:4]
         else:
