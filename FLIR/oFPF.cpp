@@ -1,3 +1,12 @@
+/*----------------------------------------------------------------------
+ *
+ * oFPF.cpp : The Class Interface
+ *            More comments on the header file and in the lines below
+ *
+ * Guigue - 2017-10-24 @Sampa
+ *
+ *---------------------------------------------------------------------- */
+
 #include "oFPF.h"
 
 // Default creator. It creates an empty object.

@@ -1,26 +1,11 @@
 ; IDL Version 8.0 (linux x86_64 m64)
-; Journal File for guigue@molly
-; Working directory: /molly/guigue/Programming/CRAAM-Instruments/FLIR
-; Date: Tue Oct 24 19:31:22 2017
+; Journal File for guigue@hadar
+; Working directory: /home/guigue/Programming/CRAAM-Instruments/FLIR
+; Date: Tue Oct 24 23:28:17 2017
  
-testFITS
-;MRDFITS: Image array (320,240)  Type=Real*4
-; 
-;img0323.fpf and img0323.fit are identical 
-; 
-.r testFITS
-testFITS.out
-testFITS
-;MRDFITS: Image array (320,240)  Type=Real*4
-; 
-;img0323.fpf and img0323.fit are identical 
-; 
-.r testFITS
-; % Syntax error.
-; % 1 Compilation error(s) in module TESTFITS.
-.r testFITS
-testFITS.out
-testFITS
+testfits
+;pixelFomart =        2
+;     320     240
 ;MRDFITS: Image array (320,240)  Type=Real*4
 ; 
 ;Congrats!!  img0323.fpf and img0323.fit are identical 
