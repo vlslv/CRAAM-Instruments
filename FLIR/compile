@@ -1,0 +1,4 @@
+#!/bin/sh
+
+g++ -std=c++11 -L/usr/local/lib -o read_fpf read_fpf.cpp oFPF.cpp -lCCfits -lcfitsio
+

@@ -1,0 +1,101 @@
+In file included from oFPF.cpp:4:0:
+oFPF.h:109:12: error: extra qualification ‘oFPF::’ on member ‘open_img’ [-fpermissive]
+   ifstream oFPF::open_img (const std::string & ) ;
+            ^
+oFPF.h:110:36: error: ‘const’ qualifiers cannot be applied to ‘std::ifstream& {aka std::basic_ifstream<char>&}’
+   void oFPF::close_img (ifstream & const)        ;
+                                    ^
+oFPF.h:110:8: error: extra qualification ‘oFPF::’ on member ‘close_img’ [-fpermissive]
+   void oFPF::close_img (ifstream & const)        ;
+        ^
+oFPF.h:111:8: error: extra qualification ‘oFPF::’ on member ‘Read_Header’ [-fpermissive]
+   void oFPF::Read_Header()                       ;
+        ^
+oFPF.cpp: In member function ‘std::ifstream oFPF::open_img(const string&)’:
+oFPF.cpp:11:53: error: no matching function for call to ‘std::basic_ifstream<char>::basic_ifstream(const string&, std::_Ios_Openmode)’
+   ifstream file (fname, ios::in|ios::binary|ios::ate);
+                                                     ^
+oFPF.cpp:11:53: note: candidates are:
+In file included from oFPF.cpp:2:0:
+/usr/include/c++/4.8.2/fstream:467:7: note: std::basic_ifstream<_CharT, _Traits>::basic_ifstream(const char*, std::ios_base::openmode) [with _CharT = char; _Traits = std::char_traits<char>; std::ios_base::openmode = std::_Ios_Openmode]
+       basic_ifstream(const char* __s, ios_base::openmode __mode = ios_base::in)
+       ^
+/usr/include/c++/4.8.2/fstream:467:7: note:   no known conversion for argument 1 from ‘const string {aka const std::basic_string<char>}’ to ‘const char*’
+/usr/include/c++/4.8.2/fstream:453:7: note: std::basic_ifstream<_CharT, _Traits>::basic_ifstream() [with _CharT = char; _Traits = std::char_traits<char>]
+       basic_ifstream() : __istream_type(), _M_filebuf()
+       ^
+/usr/include/c++/4.8.2/fstream:453:7: note:   candidate expects 0 arguments, 2 provided
+/usr/include/c++/4.8.2/fstream:427:11: note: std::basic_ifstream<char>::basic_ifstream(const std::basic_ifstream<char>&)
+     class basic_ifstream : public basic_istream<_CharT, _Traits>
+           ^
+/usr/include/c++/4.8.2/fstream:427:11: note:   candidate expects 1 argument, 2 provided
+In file included from /usr/include/c++/4.8.2/ios:42:0,
+                 from /usr/include/c++/4.8.2/ostream:38,
+                 from /usr/include/c++/4.8.2/iostream:39,
+                 from oFPF.cpp:1:
+/usr/include/c++/4.8.2/bits/ios_base.h: In copy constructor ‘std::basic_ios<char>::basic_ios(const std::basic_ios<char>&)’:
+/usr/include/c++/4.8.2/bits/ios_base.h:786:5: error: ‘std::ios_base::ios_base(const std::ios_base&)’ is private
+     ios_base(const ios_base&);
+     ^
+In file included from /usr/include/c++/4.8.2/ios:44:0,
+                 from /usr/include/c++/4.8.2/ostream:38,
+                 from /usr/include/c++/4.8.2/iostream:39,
+                 from oFPF.cpp:1:
+/usr/include/c++/4.8.2/bits/basic_ios.h:66:11: error: within this context
+     class basic_ios : public ios_base
+           ^
+In file included from oFPF.cpp:2:0:
+/usr/include/c++/4.8.2/fstream: In copy constructor ‘std::basic_ifstream<char>::basic_ifstream(const std::basic_ifstream<char>&)’:
+/usr/include/c++/4.8.2/fstream:427:11: note: synthesized method ‘std::basic_ios<char>::basic_ios(const std::basic_ios<char>&)’ first required here 
+     class basic_ifstream : public basic_istream<_CharT, _Traits>
+           ^
+In file included from /usr/include/c++/4.8.2/ios:43:0,
+                 from /usr/include/c++/4.8.2/ostream:38,
+                 from /usr/include/c++/4.8.2/iostream:39,
+                 from oFPF.cpp:1:
+/usr/include/c++/4.8.2/streambuf: In copy constructor ‘std::basic_filebuf<char>::basic_filebuf(const std::basic_filebuf<char>&)’:
+/usr/include/c++/4.8.2/streambuf:802:7: error: ‘std::basic_streambuf<_CharT, _Traits>::basic_streambuf(const std::basic_streambuf<_CharT, _Traits>&) [with _CharT = char; _Traits = std::char_traits<char>]’ is private
+       basic_streambuf(const basic_streambuf& __sb)
+       ^
+In file included from oFPF.cpp:2:0:
+/usr/include/c++/4.8.2/fstream:72:11: error: within this context
+     class basic_filebuf : public basic_streambuf<_CharT, _Traits>
+           ^
+/usr/include/c++/4.8.2/fstream: In copy constructor ‘std::basic_ifstream<char>::basic_ifstream(const std::basic_ifstream<char>&)’:
+/usr/include/c++/4.8.2/fstream:427:11: note: synthesized method ‘std::basic_filebuf<char>::basic_filebuf(const std::basic_filebuf<char>&)’ first required here 
+     class basic_ifstream : public basic_istream<_CharT, _Traits>
+           ^
+oFPF.cpp: In member function ‘std::ifstream oFPF::open_img(const string&)’:
+oFPF.cpp:12:10: note: synthesized method ‘std::basic_ifstream<char>::basic_ifstream(const std::basic_ifstream<char>&)’ first required here 
+   return file;
+          ^
+oFPF.cpp: At global scope:
+oFPF.cpp:15:39: error: expected ‘,’ or ‘...’ before ‘const’
+ void oFPF::close_img (ifstream & file const){
+                                       ^
+In file included from read_fpf.cpp:6:0:
+oFPF.h:109:12: error: extra qualification ‘oFPF::’ on member ‘open_img’ [-fpermissive]
+   ifstream oFPF::open_img (const std::string & ) ;
+            ^
+oFPF.h:110:36: error: ‘const’ qualifiers cannot be applied to ‘std::ifstream& {aka std::basic_ifstream<char>&}’
+   void oFPF::close_img (ifstream & const)        ;
+                                    ^
+oFPF.h:110:8: error: extra qualification ‘oFPF::’ on member ‘close_img’ [-fpermissive]
+   void oFPF::close_img (ifstream & const)        ;
+        ^
+oFPF.h:111:8: error: extra qualification ‘oFPF::’ on member ‘Read_Header’ [-fpermissive]
+   void oFPF::Read_Header()                       ;
+        ^
+read_fpf.cpp: In function ‘int main()’:
+read_fpf.cpp:10:3: error: ‘sdt’ has not been declared
+   sdt::string fname = "img0323.fpf";
+   ^
+read_fpf.cpp:10:15: error: expected ‘;’ before ‘fname’
+   sdt::string fname = "img0323.fpf";
+               ^
+read_fpf.cpp:14:18: error: request for member ‘open_img’ in ‘fpf_obj’, which is of non-class type ‘oFPF()’
+   file_p=fpf_obj.open_img(fname);
+                  ^
+read_fpf.cpp:14:27: error: ‘fname’ was not declared in this scope
+   file_p=fpf_obj.open_img(fname);
+                           ^
