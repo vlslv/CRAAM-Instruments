@@ -98,6 +98,8 @@ class RBD(object):
 #         - 2017-06-15 : First written
 #         - 2017-08-19 : xml files implementation
 #         - 2017-08-29 : writeFITS implementation
+#         - 2017-11-02 : Check that PathToXML points to the XML tables repositories.
+#                        readRBDinDictionary() and writeFITS() methods return True or False.
 #
 ###############################################################################################
 
@@ -209,7 +211,7 @@ class RBD(object):
             date=str(int(_name1_[2:5])+1900) + '-' + _name1_[5:7] + '-' + _name1_[7:9]
         else:
             print self.RBDfname+ '  is a wrong RBD Filename. Aborting...'
-            sys.exit(1)
+            return False
 
         # From the time description of the RBD file name we get
         if (len(_name2_) == 4) :
@@ -222,7 +224,7 @@ class RBD(object):
         self.MetaData.update({'ISOTime'     : time   })
         self.MetaData.update({'SSTType'     : SSTtype})
         
-        return type,date
+        return True
 
     """-----------------------------------------------------------------------------"""
 
@@ -276,13 +278,14 @@ class RBD(object):
     """-----------------------------------------------------------------------------------------"""
     
     def read_xml_header(self):
-        self.getISODate()       
-        _tt_        = oRBD.DataTimeSpan()
+        if not self.getISODate():
+            return False
+        _tt_        = oRBD.DataTimeSpan(self.PathToXML)
         _hfname_    = _tt_.findHeaderFile(SSTType=self.MetaData['SSTType'],SSTDate=self.MetaData['ISODate'])
         _xmlheader_ = xmlet.parse(self.PathToXML + _hfname_)
         self.hfname = _hfname_
         self.header = _xmlheader_.getroot()
-        return
+        return True
     
     """-----------------------------------------------------------------------------"""
     
@@ -295,13 +298,18 @@ class RBD(object):
            is stored in a numpy ndarray. Every ndarray has the python dtype corresponding to 
            the original SST data. 
 
+        Output:
+           It returns True or False
+
         Change Record:
            First Written by Guigue @ Sampa - 2017-08-26
 
         """
 
         self.RBDfname = RBDfname
-        self.read_xml_header()
+        if not self.read_xml_header():
+            return 
+        
         self.define_fmt()
         self.CleanPaths()
         self.History = []
@@ -353,11 +361,12 @@ class RBD(object):
                             
             os.close(_fd_)
         else:
-            print 'File '+self.InputPath+self.RBDfname+'  not found'
+            print 'File '+self.InputPath+self.RBDfname+'  not found. Aborting...'
+            return False
 
         self.History.append('Converted to FITS level-0 with oRBD.py version '+self.version)
         
-        return
+        return True
 
     """-----------------------------------------------------------------------------"""
     def CleanPaths(self):
@@ -390,16 +399,16 @@ class RBD(object):
 
         _hhmmss_ = self.timeSpan()
 
-        self.writeFITSwithName('sst_'  +
+        return self.writeFITSwithName('sst_'  +
                                self.MetaData['SSTType'].lower() + '_' +
                                self.MetaData['ISODate'] + 'T' +
                                _hhmmss_[0]+'-' + _hhmmss_[1] +
                                '_level0.fits')
 
-        return
+
+    """-----------------------------------------------------------------------------"""
 
     def writeFITSwithName(self,FITSfname):
-
 
         """
         writeFITS:
@@ -413,9 +422,13 @@ class RBD(object):
 
              The system implements two headers. The primary header has general information, while the secondary
              header is specific for the table, including the units of the columns. 
-                
+
+        Output:
+             It returns True or False on success or failure respectively.
+
         Change Record:
              First written by Guigue @ Sampa - 2017-08-26
+             Return value added on 2017-11-02
         
         """
         self.CleanPaths()
@@ -516,12 +529,12 @@ class RBD(object):
         self.CleanPaths() 
             
         if os.path.exists(self.OutputPath+self.MetaData['FITSfname']) :
-            print 'File '+ self.OutputPath+self.MetaData['FITSfname']+ 'already exist. Aborting....'
-            sys.exit(1) 
+            print 'File '+ self.OutputPath+self.MetaData['FITSfname']+ '  already exist. Aborting....'
+            return False
         else:
             _hduList_.writeto(self.OutputPath+self.MetaData['FITSfname'])
             
-        return 
+        return True
 
     """------------------------------------------------------------------------------------ """
 
@@ -641,28 +654,92 @@ class RBD(object):
         return
 
     """------------------------------------------------------------------------------------ """
+    def CheckXMLTables(self):
+        
+        if  not os.path.exists(self.PathToXML+'SSTDataFormatTimeSpanTable.xml')  :
+            print '  '
+            print 'File : '+ self.PathToXML+'SSTDataFormatTimeSpanTable.xml not found'
+            print 'Exiting...'
+            return False
+
+        if  not os.path.exists(self.PathToXML+'DataFormat-2002-12-14_to_2100-01-01.xml')  :
+            print '  '
+            print 'File : '+ self.PathToXML+'DataFormat-2002-12-14_to_2100-01-01.xml not found'
+            print 'Exiting...'
+            return False
+
+        if  not os.path.exists(self.PathToXML+'DataFormat-2002-12-04_to_2002-12-13.xml')  :
+            print '  '
+            print 'File : '+ self.PathToXML+'DataFormat-2002-12-04_to_2002-12-13.xml not found'
+            print 'Exiting...'
+            return False
+        
+        if  not os.path.exists(self.PathToXML+'DataFormat-1999-05-02_to_2002-05-20.xml')  :
+            print '  '
+            print 'File : '+ self.PathToXML+'DataFormat-1999-05-02_to_2002-05-20.xml not found'
+            print 'Exiting...'
+            return False
+
+        if  not os.path.exists(self.PathToXML+'DataFormat-1900-01-01_to_1999-05-01.xml')  :
+            print '  '
+            print 'File : '+ self.PathToXML+'DataFormat-1900-01-01_to_1999-05-01.xml not found'
+            print 'Exiting...'
+            return False
+
+        if  not os.path.exists(self.PathToXML+'AuxiliaryDataFormat-2002-12-14_to_2100-01-01.xml')  :
+            print '  '
+            print 'File : '+ self.PathToXML+'AuxiliaryDataFormat-2002-12-14_to_2100-01-01.xml not found'
+            print 'Exiting...'
+            return False
+
+        if  not os.path.exists(self.PathToXML+'AuxiliaryDataFormat-2002-11-24_to_2002-12-13.xml')  :
+            print '  '
+            print 'File : '+ self.PathToXML+'AuxiliaryDataFormat-2002-11-24_to_2002-12-13.xml not found'
+            print 'Exiting...'
+            return False
+
+        if  not os.path.exists(self.PathToXML+'AuxiliaryDataFormat-2002-09-16_to_2002-11-23.xml')  :
+            print '  '
+            print 'File : '+ self.PathToXML+'AuxiliaryDataFormat-2002-09-16_to_2002-11-23.xml not found'
+            print 'Exiting...'
+            return False
+
+        if  not os.path.exists(self.PathToXML+'AuxiliaryDataFormat-1900-01-01_to_2002-09-15.xml')  :
+            print '  '
+            print 'File : '+ self.PathToXML+'AuxiliaryDataFormat-1900-01-01_to_2002-09-15.xml not found'
+            print 'Exiting...'
+            return False
+
+        return True
+
+    """------------------------------------------------------------------------------------ """
 
     def __init__(self,PathToXML='',InputPath='./',OutputPath='./'):
 
-        # Get the Environment path
+        # PathToXML should point to tha directory where the XML tables are copied
+        # When not defined, look at the environment
         if (isinstance(PathToXML,str) and len(PathToXML) == 0):
             if ('RBDXMLPATH' in os.environ.keys()):
-                if os.environ['RBDXMLPATH'][-1] != '/' :
-                    self.PathToXML = os.environ['RBDXMLPATH']+'/'
-                else:
                     self.PathToXML = os.environ['RBDXMLPATH']
             else:
                 self.PathToXML = './'
         else:
             self.PathToXML=PathToXML
 
+        if self.PathToXML[-1] != '/' :
+            self.PathToXML = self.PathToXML+'/'
+            
+        # Check the existence of the XML tables
+        if not self.CheckXMLTables() :
+            return 
+        
         self.OutputPath = OutputPath
         self.InputPath  = InputPath
 
         self.Data   = {}
         self.MetaData = {}
         self.History = []
-        self.version = '20170831T00:00' # 20 years after Lady Di passed away. 
+        self.version = '20171102T20:16BRST'
         return 
 
 ######################################################################################
@@ -720,17 +797,8 @@ class DataTimeSpan(object):
 
     """------------------------------------------------------------------------"""
 
-    def __init__(self):
-
-        # Get the Environment path
-        if ('RBDXMLPATH' in os.environ.keys()):
-            if os.environ['RBDXMLPATH'][-1] != '/' :
-                self.PathToXML = os.environ['RBDXMLPATH']+'/'
-            else:
-                self.PathToXML = os.environ['RBDXMLPATH']
-        else:
-            self.PathToXML = './'
-
-        _tt_ = xmlet.parse(self.PathToXML+'SSTDataFormatTimeSpanTable.xml')
+    def __init__(self,PathToXML):
+        
+        _tt_ = xmlet.parse(PathToXML+'SSTDataFormatTimeSpanTable.xml')
         self.table = _tt_.getroot()
         return

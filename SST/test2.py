@@ -1,8 +1,11 @@
 import oRBD
-d1=oRBD.RBD('TestData/rs1150621.1700')
-d2=oRBD.RBD('TestData/rs1150621.1800')
-d1.readRBDinDictionary()
-d2.readRBDinDictionary()
+
+d1=oRBD.RBD()
+d2=oRBD.RBD()
+
+d1.readRBDinDictionary('TestData/rs1150621.1700')
+d2.readRBDinDictionary('TestData/rs1150621.1800')
+
 d=oRBD.RBD()
 d.concat([d1,d2])    
 
