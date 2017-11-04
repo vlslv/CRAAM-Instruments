@@ -6,7 +6,7 @@
 int main( int argc, char* argv[]) 
 {
   std::string fpfname,fitsname;
-  bool noshow=true;
+  bool noshow=false;
   int f=0,c=0;
   ifstream file_p;
   oFPF fpf_obj;

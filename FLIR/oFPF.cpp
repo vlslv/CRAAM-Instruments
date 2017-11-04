@@ -14,15 +14,62 @@
 // FPF header.
 oFPF::oFPF() {};
 
+// A constructor to set the name of the FPF file
+oFPF::oFPF(const std::string fname) {
+  image.header.fpf_fname=fname;
+}
+
+// The copy constructor
+oFPF::oFPF(const oFPF & fpf){
+  image.header = fpf.image.header;
+  image.data = fpf.image.data;
+}
+
+// The assignment constructor
+oFPF & oFPF::operator=(const oFPF & fpf) {
+  if (this == &fpf) return *this;
+  image.header = fpf.image.header;
+  image.data = fpf.image.data;
+  return *this;
+}
+  
+
+
 // Default Destructor
 oFPF::~oFPF() {} ;
 
 // Open the FPP file and set the name in the header structure
-void oFPF::OpenImage (std::string fname, ifstream &fin ){
-  fin.open(fname.c_str(), std::ifstream::in | std::ifstream::binary);
+bool oFPF::OpenImage (const std::string fname, ifstream &fin ){
+  
+  fin.exceptions(std::ifstream::failbit);
+  try
+    {
+      fin.open(fname.c_str(), std::ifstream::in | std::ifstream::binary);
+    }
+  catch (std::ifstream::failure e) 
+    {
+      cout << endl << endl << "Cannot open file " << fname << endl << endl << endl ;
+      return false;
+    }      
   image.header.fpf_fname=fname;
-  return ;
+  return true ;
 }
+
+// The name is already defined in the header. Open the FPP file.
+bool oFPF::OpenImage (ifstream &fin ){  
+  fin.exceptions(std::ifstream::failbit);
+  try
+    {
+      fin.open(image.header.fpf_fname.c_str(), std::ifstream::in | std::ifstream::binary) ;
+    }
+  catch (std::ifstream::failure e) 
+    {
+      cout << endl << endl << "Cannot open file " << image.header.fpf_fname << endl << endl << endl ;
+      return false;
+    }      
+  return true;
+}
+
 
 // Close the FPF file
 void oFPF::CloseImage (ifstream & fin){
@@ -39,49 +86,74 @@ void oFPF::CloseImage (ifstream & fin){
  size, and then cast its content to the right format.
 
 */
-void oFPF::ReadImageSize(ifstream & fin) {
+bool oFPF::ReadImageSize(ifstream & fin) {
   FPFulong ulbuffer;
   FPFuint  uibuffer;
   FPFchar  buffer[FPF_SPARE*sizeof(FPFlong)];
 
-  fin.read(image.header.image_data.fpfID, FPF_DESCR_LEN);
+  fin.exceptions (std::ifstream::failbit | std::ifstream::badbit);
 
-  fin.read((char *) &ulbuffer,sizeof(FPFulong)); 
-  image.header.image_data.version = (FPFulong) (ulbuffer) ;
+  try
+    {
+      fin.read(image.header.image_data.fpfID, FPF_DESCR_LEN);
 
-  fin.read((char *) &ulbuffer,sizeof(FPFulong));
-  image.header.image_data.pixelOffset = (FPFulong) (ulbuffer);
+      fin.read((char *) &ulbuffer,sizeof(FPFulong)); 
+      image.header.image_data.version = (FPFulong) (ulbuffer) ;
 
-  fin.read((char *) &uibuffer,sizeof(FPFuint));
-  image.header.image_data.ImageType = (FPFuint) (uibuffer);
+      fin.read((char *) &ulbuffer,sizeof(FPFulong));
+      image.header.image_data.pixelOffset = (FPFulong) (ulbuffer);
 
-  fin.read((char *) &uibuffer,sizeof(FPFuint));
-  image.header.image_data.pixelFormat = (FPFuint) (uibuffer);
+      fin.read((char *) &uibuffer,sizeof(FPFuint));
+      image.header.image_data.ImageType = (FPFuint) (uibuffer);
 
-  fin.read((char *) &uibuffer,sizeof(FPFuint));
-  image.header.image_data.xSize = (FPFuint) (uibuffer);
+      fin.read((char *) &uibuffer,sizeof(FPFuint));
+      image.header.image_data.pixelFormat = (FPFuint) (uibuffer);
 
-  fin.read( (char *) &uibuffer,sizeof(FPFuint));
-  image.header.image_data.ySize = (FPFuint) (uibuffer);
+      fin.read((char *) &uibuffer,sizeof(FPFuint));
+      image.header.image_data.xSize = (FPFuint) (uibuffer);
 
-  fin.read((char *) &ulbuffer,sizeof(FPFulong));
-  image.header.image_data.trig_count = (FPFulong) (ulbuffer);
+      fin.read( (char *) &uibuffer,sizeof(FPFuint));
+      image.header.image_data.ySize = (FPFuint) (uibuffer);
 
-  fin.read((char *) &ulbuffer,sizeof(FPFulong));
-  image.header.image_data.frame_count = (FPFulong) (ulbuffer);
+      fin.read((char *) &ulbuffer,sizeof(FPFulong));
+      image.header.image_data.trig_count = (FPFulong) (ulbuffer);
 
-  fin.read(buffer,FPF_SPARE*sizeof(FPFlong));
+      fin.read((char *) &ulbuffer,sizeof(FPFulong));
+      image.header.image_data.frame_count = (FPFulong) (ulbuffer);
 
-  return;
+      fin.read(buffer,FPF_SPARE*sizeof(FPFlong));
+    }
+  catch (std::ifstream::failure e) 
+    {
+      cout << endl << endl << "Cannot read file " << image.header.fpf_fname << endl << endl << endl ;
+      return false;
+    }   
+  return true;
 }
 
 // Resize the 1D vector to host the data
 
-void oFPF::DimensionDataArray(bool noShow=true){
-  image.data.resize(image.header.image_data.xSize * image.header.image_data.ySize);
-  if (!noShow) 
-    cout << endl << "Size of Data Image = " << image.data.size() << endl;
-  return;
+bool oFPF::DimensionDataArray(bool noShow){
+  long fpfDataSize ; 
+  if  (image.header.image_data.xSize > 0  || image.header.image_data.ySize > 0) {
+      fpfDataSize = image.header.image_data.xSize * image.header.image_data.ySize;
+      if (fpfDataSize < MaxfpfDataSize)
+	{
+	image.data.resize(fpfDataSize);
+	if (!noShow) cout << endl << "Size of Data Image = " << image.data.size() << endl;
+	}
+      else
+	{
+	  cout << endl<< endl<< "Image Sizee bigger than Maximum allowed size = " << MaxfpfDataSize << endl << endl;
+	  return false;
+	}
+    }
+  else
+    {
+      cout << endl << endl << "Problems reading FPF Data Size" << endl << endl ;
+      return false;
+    }
+  return true;
 }
 
 /*
@@ -89,97 +161,107 @@ void oFPF::DimensionDataArray(bool noShow=true){
              the image data.
 
 */
-void oFPF::ReadImage(ifstream & fin) {
+bool oFPF::ReadImage(ifstream & fin) {
 
   FPFchar null_buffer[FPF_SPARE*sizeof(FPFlong)];
-  
+
+  fin.exceptions (std::ifstream::failbit | std::ifstream::badbit);
+
+  try
+    {
   /*******************************************************************
    The Camera Data Header 
   ******************************************************************/
-  {
-    FPFchar  buffer[FPF_DESCR_LEN];
-    FPFfloat fbuffer[2];
+      {
+	FPFchar  buffer[FPF_DESCR_LEN];
+	FPFfloat fbuffer[2];
     
-    fin.read(image.header.camdata.camera_name, FPF_DESCR_LEN)  ;
-    fin.read(image.header.camdata.camera_partn,FPF_DESCR_LEN)  ;
-    fin.read(image.header.camdata.camera_sn, FPF_DESCR_LEN)    ;
+	fin.read(image.header.camdata.camera_name, FPF_DESCR_LEN)  ;
+	fin.read(image.header.camdata.camera_partn,FPF_DESCR_LEN)  ;
+	fin.read(image.header.camdata.camera_sn, FPF_DESCR_LEN)    ;
   
-    fin.read((char *) &fbuffer,sizeof(FPFfloat)*2)                ;
-    image.header.camdata.camera_range_tmin = (FPFfloat) fbuffer[0];
-    image.header.camdata.camera_range_tmax= (FPFfloat) fbuffer[1] ;
+	fin.read((char *) &fbuffer,sizeof(FPFfloat)*2)                ;
+	image.header.camdata.camera_range_tmin = (FPFfloat) fbuffer[0];
+	image.header.camdata.camera_range_tmax= (FPFfloat) fbuffer[1] ;
   
-    fin.read(image.header.camdata.lens_name,FPF_DESCR_LEN)     ;
-    fin.read(image.header.camdata.lens_partn,FPF_DESCR_LEN)    ;
-    fin.read(image.header.camdata.lens_sn,FPF_DESCR_LEN)       ;
-    fin.read(image.header.camdata.filter_name,FPF_DESCR_LEN)   ;
-    fin.read(image.header.camdata.filter_partn,FPF_DESCR_LEN)  ;
-    fin.read(image.header.camdata.filter_sn,FPF_DESCR_LEN)     ;
-    fin.read(null_buffer,FPF_SPARE*sizeof(FPFlong))            ; //blank data
-  }
+	fin.read(image.header.camdata.lens_name,FPF_DESCR_LEN)     ;
+	fin.read(image.header.camdata.lens_partn,FPF_DESCR_LEN)    ;
+	fin.read(image.header.camdata.lens_sn,FPF_DESCR_LEN)       ;
+	fin.read(image.header.camdata.filter_name,FPF_DESCR_LEN)   ;
+	fin.read(image.header.camdata.filter_partn,FPF_DESCR_LEN)  ;
+	fin.read(image.header.camdata.filter_sn,FPF_DESCR_LEN)     ;
+	fin.read(null_buffer,FPF_SPARE*sizeof(FPFlong))            ; //blank data
+      }
   
   /*******************************************************************
    The Object Parameters Header 
   ******************************************************************/
-  {
-    FPFfloat fbuffer[10];
+      {
+	FPFfloat fbuffer[10];
     
-    fin.read((char *) &fbuffer,sizeof(FPFfloat)*10)                ;
-    image.header.object_par.emissivity     = (FPFfloat) fbuffer[0] ;
-    image.header.object_par.objectDistance = (FPFfloat) fbuffer[1] ;
-    image.header.object_par.ambTemp        = (FPFfloat) fbuffer[2] ;
-    image.header.object_par.atmTemp        = (FPFfloat) fbuffer[3] ;
-    image.header.object_par.relHum         = (FPFfloat) fbuffer[4] ;
-    image.header.object_par.compuTao       = (FPFfloat) fbuffer[5] ;
-    image.header.object_par.estimTao       = (FPFfloat) fbuffer[6] ;
-    image.header.object_par.refTemp        = (FPFfloat) fbuffer[7] ;
-    image.header.object_par.extOptTemp     = (FPFfloat) fbuffer[8] ;
-    image.header.object_par.extOptTrans    = (FPFfloat) fbuffer[9] ;
-    
-    fin.read(null_buffer,FPF_SPARE*sizeof(FPFlong))                ; //blank data
-  }
+	fin.read((char *) &fbuffer,sizeof(FPFfloat)*10)                ;
+	image.header.object_par.emissivity     = (FPFfloat) fbuffer[0] ;
+	image.header.object_par.objectDistance = (FPFfloat) fbuffer[1] ;
+	image.header.object_par.ambTemp        = (FPFfloat) fbuffer[2] ;
+	image.header.object_par.atmTemp        = (FPFfloat) fbuffer[3] ;
+	image.header.object_par.relHum         = (FPFfloat) fbuffer[4] ;
+	image.header.object_par.compuTao       = (FPFfloat) fbuffer[5] ;
+	image.header.object_par.estimTao       = (FPFfloat) fbuffer[6] ;
+	image.header.object_par.refTemp        = (FPFfloat) fbuffer[7] ;
+	image.header.object_par.extOptTemp     = (FPFfloat) fbuffer[8] ;
+	image.header.object_par.extOptTrans    = (FPFfloat) fbuffer[9] ;
+	
+	fin.read(null_buffer,FPF_SPARE*sizeof(FPFlong))                ; //blank data
+      }
   
   /*****************************************************************
    The Date Time Header 
   ******************************************************************/
-  {
-    FPFlong ibuffer[7] ;
+      {
+	FPFlong ibuffer[7] ;
     
-    fin.read((char *) &ibuffer,sizeof(FPFlong) * 7)          ;
-    image.header.datetime.Year        = (FPFlong) ibuffer[0] ;
-    image.header.datetime.Month       = (FPFlong) ibuffer[1] ;
-    image.header.datetime.Day         = (FPFlong) ibuffer[2] ;
-    image.header.datetime.Hour        = (FPFlong) ibuffer[3] ;
-    image.header.datetime.Minute      = (FPFlong) ibuffer[4] ;
-    image.header.datetime.Second      = (FPFlong) ibuffer[5] ;
-    image.header.datetime.MilliSecond = (FPFlong) ibuffer[6] ;
-    fin.read(null_buffer,FPF_SPARE*sizeof(FPFlong))          ; //blank data
+	fin.read((char *) &ibuffer,sizeof(FPFlong) * 7)          ;
+	image.header.datetime.Year        = (FPFlong) ibuffer[0] ;
+	image.header.datetime.Month       = (FPFlong) ibuffer[1] ;
+	image.header.datetime.Day         = (FPFlong) ibuffer[2] ;
+	image.header.datetime.Hour        = (FPFlong) ibuffer[3] ;
+	image.header.datetime.Minute      = (FPFlong) ibuffer[4] ;
+	image.header.datetime.Second      = (FPFlong) ibuffer[5] ;
+	image.header.datetime.MilliSecond = (FPFlong) ibuffer[6] ;
+	fin.read(null_buffer,FPF_SPARE*sizeof(FPFlong))          ; //blank data
 
-  }
+      }
 
   /*******************************************************************
    The Scaling Header 
   ******************************************************************/
-  {
-  FPFfloat fbuffer[6];
-  fin.read((char *) &fbuffer,sizeof(FPFfloat) * 6)    ;
-  image.header.scaling.tMinCam   = (FPFfloat) fbuffer[0] ;
-  image.header.scaling.tMaxCam   = (FPFfloat) fbuffer[1] ;
-  image.header.scaling.tMinCalc  = (FPFfloat) fbuffer[2] ;
-  image.header.scaling.tMaxCam   = (FPFfloat) fbuffer[3] ;
-  image.header.scaling.tMinScale = (FPFfloat) fbuffer[4] ;
-  image.header.scaling.tMaxScale = (FPFfloat) fbuffer[5] ;
-  fin.read(null_buffer,FPF_SPARE*sizeof(FPFlong))        ;  // blank data
-  }
+      {
+	FPFfloat fbuffer[6];
+	fin.read((char *) &fbuffer,sizeof(FPFfloat) * 6)    ;
+	image.header.scaling.tMinCam   = (FPFfloat) fbuffer[0] ;
+	image.header.scaling.tMaxCam   = (FPFfloat) fbuffer[1] ;
+	image.header.scaling.tMinCalc  = (FPFfloat) fbuffer[2] ;
+	image.header.scaling.tMaxCam   = (FPFfloat) fbuffer[3] ;
+	image.header.scaling.tMinScale = (FPFfloat) fbuffer[4] ;
+	image.header.scaling.tMaxScale = (FPFfloat) fbuffer[5] ;
+	fin.read(null_buffer,FPF_SPARE*sizeof(FPFlong))        ;  // blank data
+      }
 
   /***************************************************************
    The actual Data
   ****************************************************************/
-  {
-    fin.read(null_buffer,FPF_SPARE * sizeof(FPFlong)) ; // Blank Data
-    fin.read(null_buffer,FPF_SPARE * sizeof(FPFlong)) ; // Blank Data
-    fin.read(reinterpret_cast<char*>(image.data.data()), image.data.size()*sizeof(FPFfloat));
-  }
-  
+      {
+	fin.read(null_buffer,FPF_SPARE * sizeof(FPFlong)) ; // Blank Data
+	fin.read(null_buffer,FPF_SPARE * sizeof(FPFlong)) ; // Blank Data
+	fin.read(reinterpret_cast<char*>(image.data.data()), image.data.size()*sizeof(FPFfloat));
+      }
+    }
+  catch (std::ifstream::failure e)
+    {
+      cout << endl << endl << "Error while reading file " << image.header.fpf_fname << endl << endl ;
+      return false;
+    }
+  return true;
 }
 
 // Simple look at the Header Sections and its contents  
@@ -272,7 +354,7 @@ float oFPF::getElement(short f, short c) const
              identified by comments.
 
  */
-int oFPF::writeFITS(string & fitsname ) const
+bool oFPF::writeFITS(string & fitsname ) const
 {
   char buff1[10], buff2[25]       ;
   string fitsAname="!"+fitsname   ;         // fits Alternate filename, to overwrite in case it exist
@@ -333,7 +415,8 @@ int oFPF::writeFITS(string & fitsname ) const
     }
   catch (CCfits::FITS::CantCreate)
     {
-      return -1;
+      cout << endl << endl << "Cannot create fits file." << endl << endl ;
+      return false;
     }
 
   /* 
@@ -405,6 +488,6 @@ int oFPF::writeFITS(string & fitsname ) const
   // NOW... the actual Data
   pFits->pHDU().write(first_pixel,nelements,temp_data);
 
-  return 0;
+  return true;
   
 }

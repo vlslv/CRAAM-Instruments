@@ -6,7 +6,7 @@
 ########################################################################
 
 #CFLAGS = -g -L/usr/local/lib
-CFLAGS =  -L/usr/local/lib -I/usr/local/include
+CFLAGS =  -g -L/usr/local/lib -I/usr/local/include
 CLIBS = -lCCfits -lcfitsio
 CC = g++
 

@@ -9,13 +9,12 @@
 
 int main( int argc, char* argv[]) 
 {
-  //  std::string fname = "img0323.fpf", fitsname="img0323.fits";
   std::string fname, fitsname;
   bool noshow=false;
   int f=0,c=0;
   ifstream file_p;
   oFPF fpf_obj;
-
+  
   if (argc == 1) {
     std::cout << "Exit..." << endl;
     exit(0);
@@ -26,24 +25,22 @@ int main( int argc, char* argv[])
     fitsname=(string) argv[1]+"fits";
   }
   
-  fpf_obj.OpenImage(fname, file_p);
-  fpf_obj.ReadHeader(file_p);
-  fpf_obj.DimensionDataArray(noshow);
-  
-  fpf_obj.ReadImage(file_p);
-  //  fpf_obj.ShowHeader();
-
+  if (! fpf_obj.OpenImage(fname, file_p)) exit(1);
+  if (! fpf_obj.ReadImageSize(file_p)) exit(1) ;
+  if (! fpf_obj.DimensionDataArray(noshow)) exit(1);
+  if (! fpf_obj.ReadImage(file_p)) exit(1) ;
   fpf_obj.CloseImage(file_p);
-  
-  //if (argc == 2) fpf_obj.writeFITS(fitsname);
 
-  if (argc == 4)
-    {
-      fname = (string) argv[1]+".fpf" ;
-      f=atoi(argv[2]);
-      c=atoi(argv[3]);
-      cout << endl << endl << "File = " << fname << endl ;
-      cout << "Element <" << f << "," << c << "> = " << fpf_obj.getElement(f,c) << endl << endl << endl ;
-    }
+  oFPF fpf_obj_2 = fpf_obj;
+
+  //fpf_obj.ShowHeader();
+
+  if (argc == 2) {
+    string altFITSname="test.fits" ;
+    if (! fpf_obj.writeFITS(fitsname)) exit(1);
+    if (! fpf_obj_2.writeFITS(altFITSname)) exit(1);
+  }
+
+  exit(0);
     
 }
