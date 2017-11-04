@@ -48,6 +48,7 @@ typedef char FPFchar             ;   // 1 byte
 
 const short FPF_DESCR_LEN = 32 ;
 const short FPF_SPARE = 16     ;
+const long MaxfpfDataSize = 1000000 ;
 
 // Start description of the different header sections
 // We define every header section as an structure
@@ -135,16 +136,20 @@ class oFPF {
                           // No dimension is given when created.
   } image ;
  public:
-  oFPF()                                         ;
+  oFPF()                                         ; // Default
+  oFPF(const std::string)                        ; // Set the FPF file name
+  oFPF(const oFPF &)                             ; // Copy
+  oFPF & operator=(const oFPF &)                 ; // Assignment
  ~oFPF()                                         ;
-  void OpenImage (std::string , std::ifstream & );
+  bool OpenImage (std::string , std::ifstream & );
+  bool OpenImage (ifstream &)                    ;
   void CloseImage (std::ifstream & )             ;
-  void ReadImageSize(std::ifstream &)            ;
-  void ReadImage(std::ifstream & )               ;
-  void DimensionDataArray(bool)                  ;
+  bool ReadImageSize(std::ifstream &)            ;
+  bool ReadImage(std::ifstream & )               ;
+  bool DimensionDataArray(bool)                  ;
   void ShowHeader() const                        ;
   float getElement(short , short ) const         ;
-  int  writeFITS(std::string & ) const           ;
+  bool  writeFITS(std::string & ) const           ;
 
 } ;
 
