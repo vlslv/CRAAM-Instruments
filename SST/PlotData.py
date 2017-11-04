@@ -45,9 +45,14 @@ if __name__ == "__main__":
     except Exception, e:
         print "An unexpected exception occurred"
         sys.exit(1)
-    
-    st=getTimeAxi(d)
-    plt.plot(st,d.Data['adcval'][:,chn])
+
+    if d.MetaData['SSTType'] == 'Auxiliary' :
+        fieldname='adc'
+    else:
+        fieldname='adcval'
+
+    st=getTimeAxis(d)
+    plt.plot(st,d.Data[fieldname][:,chn])
     plt.show()
 
     
