@@ -103,6 +103,68 @@ class RBD(object):
 #
 ###############################################################################################
 
+    def getTimeAxis(self):
+        """
+
+        getTimeAxis: Class method to convert the us time axis used in RBD files to a Python
+                     datetime ndarray that can be used with matplotlib.pyplot.
+
+        Change Record:  First written by Guigue @ Sampa
+                        2017-11-04 St Charles Day !!!
+
+        """
+
+        import datetime as dt
+        ndata = self.Data['time'].shape[0]
+
+        ssttime = np.array(np.empty(ndata),dtype=dt.datetime)
+        year  = int(self.MetaData['ISODate'][0:4])
+        month = int(self.MetaData['ISODate'][5:7])
+        day   = int(self.MetaData['ISODate'][8:])
+        for i in np.arange(ndata):
+            ms = self.Data['time'][i]
+            hours =  ms / 36000000L
+            minutes = (ms % 36000000L) / 600000L
+            seconds = ((ms % 36000000L) % 600000L) / 1.0E+04
+            seconds_int  = int(seconds)
+            seconds_frac = seconds - int(seconds)
+            useconds     = int(seconds_frac * 1e6)
+            ssttime[i] = dt.datetime(year,month,day,hours,minutes,seconds_int,useconds)
+                        
+        return ssttime
+    
+    """------------------------------------------------------------------------------------ """
+
+    def CorrectAuxiliary(self):
+        """
+        CorectAuxiliary: For some unknown reason Auxiliary files (a.k.a. BI files) have 0 time
+                         when SST start_obs command is given. This method corrects this problem 
+                         subtracting 1 s from the next record. If it is the last record, it add 
+                         1 s to the previous one. 
+
+                         It only works for Auxiliary files.
+
+        Change Record: First written by Guigue @ Sampa
+                       2017-11-04 St Charles Day !!
+
+        """
+
+        if (self.MetaData['SSTType'] != 'Auxiliary'):
+            return
+
+        TZ = np.where(self.Data['time'] == 0)
+        TZ = np.flipud(TZ[0])
+        N=TZ.shape[0]
+        if (N > 0):
+            Nrec = len(self.Data['time'])
+            for i in np.arange(N):
+                if (TZ[i] < Nrec-1):
+                    self.Data['time'][TZ[i]] = self.Data['time'][TZ[i]+1]-10000L
+                else:
+                    self.Data['time'][TZ[i]] = self.Data['time'][TZ[i]-1]+10000L
+
+        return
+
     """------------------------------------------------------------------------------------ """
 
     def timeSpan(self):
@@ -739,7 +801,7 @@ class RBD(object):
         self.Data   = {}
         self.MetaData = {}
         self.History = []
-        self.version = '20171102T20:16BRST'
+        self.version = '20171104T23:42BRST'
         return 
 
 ######################################################################################
