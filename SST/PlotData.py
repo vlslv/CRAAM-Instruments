@@ -3,7 +3,7 @@
 
 def getTimeAxis(d):
 
-    ndata = len(d.Data['time'])
+    ndata = d.Data['time'].shape[0]
 
     ssttime = np.array(np.empty(ndata),dtype=dt.datetime)
     year  = int(d.MetaData['ISODate'][0:4])
