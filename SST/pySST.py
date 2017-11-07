@@ -1,8 +1,20 @@
-
 import numpy as np
 
-def cntgs(s):
+def ms2dt(y,m,d,ms):
+    
+    import datetime as dt
 
+    ms = int(ms)
+    hours =  ms / 36000000L
+    minutes = (ms % 36000000L) / 600000L
+    seconds = ((ms % 36000000L) % 600000L) / 1.0E+04
+    seconds_int  = int(seconds)
+    seconds_frac = seconds - int(seconds)
+    useconds     = int(seconds_frac * 1e6)
+
+    return dt.datetime(y,m,d,hours,minutes,seconds_int,useconds)
+
+def cntgs(s):
 
     sDim=s.shape[0]
     if (sDim <= 2):
@@ -21,7 +33,7 @@ def cntgs(s):
             c[0,1] = xDisc[0]
         elif (i==nDisc-1):
             c[i,0] = xDisc[i]
-            c[i,1] = s.shape[0]
+            c[i,1] = s.shape[0]-1
         else:
             c[i,0] = xDisc[i]
             c[i,1] = xDisc[i+1]
