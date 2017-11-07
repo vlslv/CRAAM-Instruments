@@ -132,39 +132,34 @@ class RBD(object):
             ssttime[i] = dt.datetime(year,month,day,hours,minutes,seconds_int,useconds)
                         
         return ssttime
-    
-    """------------------------------------------------------------------------------------ """
 
+    """-------------------------------------------------------------------------------------"""
     def CorrectAuxiliary(self):
         """
-        CorectAuxiliary: For some unknown reason Auxiliary files (a.k.a. BI files) have 0 time
-                         when SST start_obs command is given. This method corrects this problem 
-                         subtracting 1 s from the next record. If it is the last record, it add 
-                         1 s to the previous one. 
+        CorectAuxiliary: For some unknown reason Auxiliary files (a.k.a. BI files) have a 0 record
+                         when SST start_obs command is given. A 0 record means all fields are 0. 
+                         This method corrects this problem deleting the flawed records. 
+                         To verify the record does not correspond to O UT, we check that ADC are 0 too.
 
                          It only works for Auxiliary files.
 
         Change Record: First written by Guigue @ Sampa
                        2017-11-04 St Charles Day !!
+                       2017-11-07 Completely changed, using python tools. Ethernal LOVE to Python!!
 
         """
-
+        
         if (self.MetaData['SSTType'] != 'Auxiliary'):
             return
 
-        TZ = np.where(self.Data['time'] == 0)
-        TZ = np.flipud(TZ[0])
-        N=TZ.shape[0]
-        if (N > 0):
-            Nrec = len(self.Data['time'])
-            for i in np.arange(N):
-                if (TZ[i] < Nrec-1):
-                    self.Data['time'][TZ[i]] = self.Data['time'][TZ[i]+1]-10000L
-                else:
-                    self.Data['time'][TZ[i]] = self.Data['time'][TZ[i]-1]+10000L
+        Mask = (self.Data['time'] != 0 & np.all(self.Data['adc'] != 0) )
+        TagList = self.Data.keys()
+        for tag in TagList:
+            v=self.Data[tag][Mask]
+            self.Data[tag]=v
 
         return
-
+        
     """------------------------------------------------------------------------------------ """
 
     def timeSpan(self):
