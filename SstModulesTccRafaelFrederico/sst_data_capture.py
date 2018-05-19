@@ -9,7 +9,7 @@ from email.mime.text import MIMEText as MT
 
 def extract_ring_list_values(sst_type, sst_date, sst_time, ring_list, clock):
     index = 0
-    ring_size = ring_list[index][7] - 1
+    ring_size = ring_list[index][7]
     root = etree.Element("SSTDataSet", {"DataType":sst_type})
 
     while True:
