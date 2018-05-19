@@ -9,6 +9,7 @@ from email.mime.text import MIMEText as MT
 
 def extract_ring_list_values(sst_type, sst_date, sst_time, ring_list, clock):
     index = 0
+    count_errors = 0
     ring_size = ring_list[index][7]
     root = etree.Element("SSTDataSet", {"DataType":sst_type})
 
@@ -16,7 +17,7 @@ def extract_ring_list_values(sst_type, sst_date, sst_time, ring_list, clock):
         try:
             start_time = int(round(t.time() * 1000))
 
-            if(("end" in ring_list) and (ring_list.index("end") == index)):
+            if(("end" in ring_list) and (ring_list.index("end") == index) or (count_errors == 10)):
                 print(colored("Stopping data capture...\n", "green", attrs = ["bold"]))
                 break
 
@@ -54,7 +55,13 @@ def extract_ring_list_values(sst_type, sst_date, sst_time, ring_list, clock):
 
                 print(colored(f"Data Capture: extracted line: {index} \n values: {ring_list[index]} ", "green", attrs = ["bold"]))
                 ring_list[index] = None
+                count_errors = 0
                 index += 1
+
+            else:
+            	print(colored(f"Null line: {index} received from feeder, trying again...", "red",  attrs = ["bold"]))
+            	count_errors += 1
+
 
             end_time = int(round(t.time() * 1000))
             sleep_time = ((clock - (end_time - start_time)) / 1000)
@@ -62,6 +69,7 @@ def extract_ring_list_values(sst_type, sst_date, sst_time, ring_list, clock):
 
         except Exception:
             print(colored(f"Could not read the line: {index} from feeder, trying again...", "red",  attrs = ["bold"]))
+            count_errors += 1
             traceback.print_exc()
 
     xmlstr = etree.tostring(root, encoding = "iso-8859-1")
