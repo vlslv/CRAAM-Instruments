@@ -16,14 +16,14 @@ def extract_ring_list_values(sst_type, sst_date, sst_time, ring_list, clock):
         try:
             start_time = int(round(t.time() * 1000))
 
-            if(ring_list[index] and ring_list[index][1] and ring_list[index][0] == "end"):
+            if(("end" in ring_list) and (ring_list.index("end") == index)):
+                print(colored("Stopping data capture...\n", "green", attrs = ["bold"]))
                 break
 
             if(index == ring_size):
                 index = 0
 
-            if(ring_list[index] and ring_list[index] != None):
-
+            if(ring_list[index]):
                 sdmDataSubset = etree.Element("SdmDataSubset",{
                                                 "time": str(ring_list[index][0]),
                                                 "target": str(ring_list[index][8]),
@@ -52,15 +52,15 @@ def extract_ring_list_values(sst_type, sst_date, sst_time, ring_list, clock):
 
                 root.append(sdmDataSubset)
 
-                index += 1
                 print(colored(f"Data Capture: extracted line: {index} \n values: {ring_list[index]} ", "green", attrs = ["bold"]))
                 ring_list[index] = None
+                index += 1
 
             end_time = int(round(t.time() * 1000))
             sleep_time = ((clock - (end_time - start_time)) / 1000)
             t.sleep(sleep_time)
 
-        except Exception as e:
+        except Exception:
             print(colored(f"Could not read the line: {index} from feeder, trying again...", "red",  attrs = ["bold"]))
             traceback.print_exc()
 
@@ -85,5 +85,6 @@ def create_mime_file(xmlstr, sst_type, sst_date, sst_time):
 
 def run_data_capture(sst_type, sst_date, sst_time, ring_list, clock):
     xmlstr = extract_ring_list_values(sst_type, sst_date, sst_time, ring_list, clock)
+    print(colored("Generating MIME table...\n", "green", attrs = ["bold"]))
     create_mime_file(xmlstr, sst_type, sst_date, sst_time)
 

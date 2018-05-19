@@ -9,7 +9,6 @@ def extract_dict_values(READ_MEMORY_DATA, sst_type, ring_list, clock):
     ring_size = 0
     last_milli = 0
     count_errors = 0
-    flag_dc = True
     line_erros = []
     adcval_name = ""
     time = READ_MEMORY_DATA["time"]
@@ -30,10 +29,9 @@ def extract_dict_values(READ_MEMORY_DATA, sst_type, ring_list, clock):
     while True:
         start_time = int(round(t.time() * 1000))
         if(count_errors >= 10):
-            flag_dc = True
             print(colored(f"\nFEEDER: Lines successfully extracted: {i} lines", "green",  attrs = ["bold"]))
             print(colored("Stopping feeder...\n", "green", attrs = ["bold"]))
-            ring_list.append(("end", flag_dc))
+            ring_list.append("end")
             check_data_erros(line_erros, i)
             break
         
@@ -81,7 +79,7 @@ def save_to_ring_list(ring_list, ring_size, tuple, i):
         ring_list.append(tuple)
     else:
         ring_list[i%ring_size] = tuple
-
+        
 
         
 def check_data_erros(line_erros, last_line):
