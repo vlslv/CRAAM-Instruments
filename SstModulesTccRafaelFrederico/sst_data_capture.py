@@ -17,7 +17,7 @@ def extract_ring_list_values(sst_type, sst_date, sst_time, ring_list, clock):
         try:
             start_time = int(round(t.time() * 1000))
 
-            if(("end" in ring_list) and (ring_list.index("end") == index) or (count_errors == 10)):
+            if((("end" in ring_list) and (ring_list.index("end") == index)) or (count_errors == 10)):
                 print(colored("Stopping data capture...\n", "green", attrs = ["bold"]))
                 break
 
@@ -59,8 +59,7 @@ def extract_ring_list_values(sst_type, sst_date, sst_time, ring_list, clock):
                 index += 1
 
             else:
-            	print(colored(f"Null line: {index} received from feeder, trying again...", "red",  attrs = ["bold"]))
-            	count_errors += 1
+                count_errors += 1
 
 
             end_time = int(round(t.time() * 1000))
