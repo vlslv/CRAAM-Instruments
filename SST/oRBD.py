@@ -100,10 +100,18 @@ class RBD(object):
 #         - 2017-08-29 : writeFITS implementation
 #         - 2017-11-02 : Check that PathToXML points to the XML tables repositories.
 #                        readRBDinDictionary() and writeFITS() methods return True or False.
+<<<<<<< HEAD
 #         - 2018-10-09 : adapted for python 3
 #                        print --> print()
 #                        integer division now is //
 #                        
+=======
+#         - 2018-10-12 : adapted for python 3
+#                        print --> print()
+#                        integer division now is //
+#                        viewkeys() -> keys()
+#                        reduce() method was altered
+>>>>>>> fc5bf36443924db4a46beaccb741d4db95a5d1ad
 #
 ###############################################################################################
 
@@ -634,7 +642,7 @@ class RBD(object):
         ISODate = RBDlist[0].MetaData['ISODate']
         
         primDimension= 0
-        TagList = list(RBDlist[0].MetaData.viewkeys())
+        TagList = list(RBDlist[0].MetaData.keys())
         for iRBD in RBDlist :
             primDimension += iRBD.Data['time'].shape[0]
             ISOTime.append(iRBD.MetaData['ISOTime'])
@@ -646,7 +654,7 @@ class RBD(object):
                           'SSTType':SSTType}
         
                           
-        TagList = list(RBDlist[0].Data.viewkeys())
+        TagList = list(RBDlist[0].Data.keys())
         for iTag in TagList:
             secDimension=0
             if len(RBDlist[0].Data[iTag].shape) > 1 :
@@ -697,11 +705,13 @@ class RBD(object):
         """
 
         ListToPreserve = ['time','adc','adcval','elepos','azipos','opmode','target','x_off','y_off']
-
+        ListToDelete = ['pm_daz', 'azierr', 'gps_status', 'pm_del', 'recnum', 'eleerr', 'pos_time', 'off']
         
-        for iKey in self.Data.keys():
-            if ListToPreserve.count(iKey) == 0 :
+        for iKey in ListToDelete:
+            try:
                 del self.Data[iKey]
+            except:
+                continue
 
         ChildToRemove=[]
         for iChild in self.header:
@@ -800,7 +810,11 @@ class RBD(object):
         self.Data   = {}
         self.MetaData = {}
         self.History = []
+<<<<<<< HEAD
         self.version = '20181009T09:15BRT'
+=======
+        self.version = '20181012T2349BRT'
+>>>>>>> fc5bf36443924db4a46beaccb741d4db95a5d1ad
         return 
 
 ######################################################################################
