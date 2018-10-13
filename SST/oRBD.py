@@ -100,6 +100,11 @@ class RBD(object):
 #         - 2017-08-29 : writeFITS implementation
 #         - 2017-11-02 : Check that PathToXML points to the XML tables repositories.
 #                        readRBDinDictionary() and writeFITS() methods return True or False.
+#         - 2018-10-12 : adapted for python 3
+#                        print --> print()
+#                        integer division now is //
+#                        viewkeys() -> keys()
+#                        reduce() method was altered
 #
 ###############################################################################################
 
@@ -123,9 +128,9 @@ class RBD(object):
         day   = int(self.MetaData['ISODate'][8:])
         for i in np.arange(ndata):
             ms = self.Data['time'][i]
-            hours =  ms / 36000000L
-            minutes = (ms % 36000000L) / 600000L
-            seconds = ((ms % 36000000L) % 600000L) / 1.0E+04
+            hours =  ms // 36000000
+            minutes = (ms % 36000000) // 600000
+            seconds = ((ms % 36000000) % 600000) / 1.0E+04
             seconds_int  = int(seconds)
             seconds_frac = seconds - int(seconds)
             useconds     = int(seconds_frac * 1e6)
@@ -211,9 +216,9 @@ class RBD(object):
            First written Guigue @ Sampa - 2017-08-26
 
         """
-        _hours_ = hustime / 36000000
-        _minutes_ = (hustime % 36000000) / 600000
-        _secs_ = (hustime - (_hours_ * 36000000 + _minutes_ * 600000)) / 10000.0
+        _hours_ = hustime // 36000000
+        _minutes_ = (hustime % 36000000) // 600000
+        _secs_ = (hustime - (_hours_ * 36000000 + _minutes_ * 600000)) // 10000.0
         return '{0:=02d}'.format(_hours_)+':'+ '{0:=02d}'.format(_minutes_) +':'+'{0:=06.3f}'.format(_secs_)
 
     """ -------------------------------------------------------------------------------------"""
@@ -267,7 +272,7 @@ class RBD(object):
         elif (len(_name1_) == 9):
             date=str(int(_name1_[2:5])+1900) + '-' + _name1_[5:7] + '-' + _name1_[7:9]
         else:
-            print self.RBDfname+ '  is a wrong RBD Filename. Aborting...'
+            print (self.RBDfname+ '  is a wrong RBD Filename. Aborting...')
             return False
 
         # From the time description of the RBD file name we get
@@ -378,7 +383,7 @@ class RBD(object):
         
         if os.path.exists(self.InputPath+self.RBDfname) :
             _fd_         = os.open(self.InputPath+self.RBDfname,os.O_RDONLY)
-            _nrec_       = os.fstat(_fd_).st_size / struct.calcsize(_fmt_)
+            _nrec_       = os.fstat(_fd_).st_size // struct.calcsize(_fmt_)
 
             for child in self.header:
             
@@ -418,7 +423,7 @@ class RBD(object):
                             
             os.close(_fd_)
         else:
-            print 'File '+self.InputPath+self.RBDfname+'  not found. Aborting...'
+            print ('File '+self.InputPath+self.RBDfname+'  not found. Aborting...')
             return False
 
         self.History.append('Converted to FITS level-0 with oRBD.py version '+self.version)
@@ -586,7 +591,7 @@ class RBD(object):
         self.CleanPaths() 
             
         if os.path.exists(self.OutputPath+self.MetaData['FITSfname']) :
-            print 'File '+ self.OutputPath+self.MetaData['FITSfname']+ '  already exist. Aborting....'
+            print ('File '+ self.OutputPath+self.MetaData['FITSfname']+ '  already exist. Aborting....')
             return False
         else:
             _hduList_.writeto(self.OutputPath+self.MetaData['FITSfname'])
@@ -630,7 +635,7 @@ class RBD(object):
         ISODate = RBDlist[0].MetaData['ISODate']
         
         primDimension= 0
-        TagList = list(RBDlist[0].MetaData.viewkeys())
+        TagList = list(RBDlist[0].MetaData.keys())
         for iRBD in RBDlist :
             primDimension += iRBD.Data['time'].shape[0]
             ISOTime.append(iRBD.MetaData['ISOTime'])
@@ -642,7 +647,7 @@ class RBD(object):
                           'SSTType':SSTType}
         
                           
-        TagList = list(RBDlist[0].Data.viewkeys())
+        TagList = list(RBDlist[0].Data.keys())
         for iTag in TagList:
             secDimension=0
             if len(RBDlist[0].Data[iTag].shape) > 1 :
@@ -693,11 +698,13 @@ class RBD(object):
         """
 
         ListToPreserve = ['time','adc','adcval','elepos','azipos','opmode','target','x_off','y_off']
-
+        ListToDelete = ['pm_daz', 'azierr', 'gps_status', 'pm_del', 'recnum', 'eleerr', 'pos_time', 'off']
         
-        for iKey in self.Data.keys():
-            if ListToPreserve.count(iKey) == 0 :
+        for iKey in ListToDelete:
+            try:
                 del self.Data[iKey]
+            except:
+                continue
 
         ChildToRemove=[]
         for iChild in self.header:
@@ -714,57 +721,57 @@ class RBD(object):
     def CheckXMLTables(self):
         
         if  not os.path.exists(self.PathToXML+'SSTDataFormatTimeSpanTable.xml')  :
-            print '  '
-            print 'File : '+ self.PathToXML+'SSTDataFormatTimeSpanTable.xml not found'
-            print 'Exiting...'
+            print ('  ')
+            print ('File : '+ self.PathToXML+'SSTDataFormatTimeSpanTable.xml not found')
+            print ('Exiting...')
             return False
 
         if  not os.path.exists(self.PathToXML+'DataFormat-2002-12-14_to_2100-01-01.xml')  :
-            print '  '
-            print 'File : '+ self.PathToXML+'DataFormat-2002-12-14_to_2100-01-01.xml not found'
-            print 'Exiting...'
+            print ('  ')
+            print ('File : '+ self.PathToXML+'DataFormat-2002-12-14_to_2100-01-01.xml not found')
+            print ('Exiting...')
             return False
 
         if  not os.path.exists(self.PathToXML+'DataFormat-2002-12-04_to_2002-12-13.xml')  :
-            print '  '
-            print 'File : '+ self.PathToXML+'DataFormat-2002-12-04_to_2002-12-13.xml not found'
-            print 'Exiting...'
+            print ('  ')
+            print ('File : '+ self.PathToXML+'DataFormat-2002-12-04_to_2002-12-13.xml not found')
+            print ('Exiting...')
             return False
         
         if  not os.path.exists(self.PathToXML+'DataFormat-1999-05-02_to_2002-05-20.xml')  :
-            print '  '
-            print 'File : '+ self.PathToXML+'DataFormat-1999-05-02_to_2002-05-20.xml not found'
-            print 'Exiting...'
+            print ('  ')
+            print ('File : '+ self.PathToXML+'DataFormat-1999-05-02_to_2002-05-20.xml not found')
+            print ('Exiting...')
             return False
 
         if  not os.path.exists(self.PathToXML+'DataFormat-1900-01-01_to_1999-05-01.xml')  :
-            print '  '
-            print 'File : '+ self.PathToXML+'DataFormat-1900-01-01_to_1999-05-01.xml not found'
-            print 'Exiting...'
+            print ('  ')
+            print ('File : '+ self.PathToXML+'DataFormat-1900-01-01_to_1999-05-01.xml not found')
+            print ('Exiting...')
             return False
 
         if  not os.path.exists(self.PathToXML+'AuxiliaryDataFormat-2002-12-14_to_2100-01-01.xml')  :
-            print '  '
-            print 'File : '+ self.PathToXML+'AuxiliaryDataFormat-2002-12-14_to_2100-01-01.xml not found'
-            print 'Exiting...'
+            print ('  ')
+            print ('File : '+ self.PathToXML+'AuxiliaryDataFormat-2002-12-14_to_2100-01-01.xml not found')
+            print ('Exiting...')
             return False
 
         if  not os.path.exists(self.PathToXML+'AuxiliaryDataFormat-2002-11-24_to_2002-12-13.xml')  :
-            print '  '
-            print 'File : '+ self.PathToXML+'AuxiliaryDataFormat-2002-11-24_to_2002-12-13.xml not found'
-            print 'Exiting...'
+            print ('  ')
+            print ('File : '+ self.PathToXML+'AuxiliaryDataFormat-2002-11-24_to_2002-12-13.xml not found')
+            print ('Exiting...')
             return False
 
         if  not os.path.exists(self.PathToXML+'AuxiliaryDataFormat-2002-09-16_to_2002-11-23.xml')  :
-            print '  '
-            print 'File : '+ self.PathToXML+'AuxiliaryDataFormat-2002-09-16_to_2002-11-23.xml not found'
-            print 'Exiting...'
+            print ('  ')
+            print ('File : '+ self.PathToXML+'AuxiliaryDataFormat-2002-09-16_to_2002-11-23.xml not found')
+            print ('Exiting...')
             return False
 
         if  not os.path.exists(self.PathToXML+'AuxiliaryDataFormat-1900-01-01_to_2002-09-15.xml')  :
-            print '  '
-            print 'File : '+ self.PathToXML+'AuxiliaryDataFormat-1900-01-01_to_2002-09-15.xml not found'
-            print 'Exiting...'
+            print ('  ')
+            print ('File : '+ self.PathToXML+'AuxiliaryDataFormat-1900-01-01_to_2002-09-15.xml not found')
+            print ('Exiting...')
             return False
 
         return True
@@ -796,7 +803,7 @@ class RBD(object):
         self.Data   = {}
         self.MetaData = {}
         self.History = []
-        self.version = '20171104T23:42BRST'
+        self.version = '20181012T2349BRT'
         return 
 
 ######################################################################################
@@ -814,7 +821,7 @@ class DataTimeSpan(object):
        tt=oRBD.DataTimeSpan()
        type='Auxiliary'
        date='2017-08-19'
-       print tt.findHeaderFile(SSTType=type,SSTDate=date)
+       print (tt.findHeaderFile(SSTType=type,SSTDate=date))
 
     Change Record:
 
