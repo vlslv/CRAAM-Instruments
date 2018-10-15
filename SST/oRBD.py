@@ -7,6 +7,13 @@ from astropy.io import fits
 # Our methods
 import oRBD
 
+################################################################
+#                                                              #
+#  Version Number. Change everytime the code is changed.       #
+#                                                              #
+Version = '20181015T1848BRT'                                   #
+#                                                              #
+################################################################
 class RBD(object):
 
 ###############################################################################################
@@ -108,6 +115,9 @@ class RBD(object):
 #
 ###############################################################################################
 
+    def getVersion(self):
+        return self.version
+        
     def getTimeAxis(self):
         """
 
@@ -803,7 +813,7 @@ class RBD(object):
         self.Data   = {}
         self.MetaData = {}
         self.History = []
-        self.version = '20181012T2349BRT'
+        self.version = Version
         return 
 
 ######################################################################################
