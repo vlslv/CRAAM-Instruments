@@ -107,11 +107,18 @@ class RBD(object):
 #         - 2017-08-29 : writeFITS implementation
 #         - 2017-11-02 : Check that PathToXML points to the XML tables repositories.
 #                        readRBDinDictionary() and writeFITS() methods return True or False.
+<<<<<<< HEAD
+#         - 2018-10-09 : adapted for python 3
+#                        print --> print()
+#                        integer division now is //
+#                        
+=======
 #         - 2018-10-12 : adapted for python 3
 #                        print --> print()
 #                        integer division now is //
 #                        viewkeys() -> keys()
 #                        reduce() method was altered
+>>>>>>> fc5bf36443924db4a46beaccb741d4db95a5d1ad
 #
 ###############################################################################################
 
@@ -813,7 +820,15 @@ class RBD(object):
         self.Data   = {}
         self.MetaData = {}
         self.History = []
+<<<<<<< HEAD
+<<<<<<< HEAD
+        self.version = '20181009T09:15BRT'
+=======
+        self.version = '20181012T2349BRT'
+>>>>>>> fc5bf36443924db4a46beaccb741d4db95a5d1ad
+=======
         self.version = Version
+>>>>>>> 85faeaa57472b64dcb6d7d1d502961059e39f31c
         return 
 
 ######################################################################################
