@@ -10,11 +10,11 @@ C2K = 273.15
 def Calibrations(b):
     
     if (b.MetaData['SSTType'] != 'Auxiliary'):
-        print '--------------------------------------'
-        print ':                                    :'
-        print ': Only for Auxiliary (BI) files      :'
-        print ':                                    :'
-        print '--------------------------------------'
+        print ('--------------------------------------')
+        print (':                                    :')
+        print (': Only for Auxiliary (BI) files      :')
+        print (':                                    :')
+        print ('--------------------------------------')
         return []
 
     b.CorrectAuxiliary()
@@ -68,12 +68,12 @@ def ms2dt(y,m,d,ms):
     import datetime as dt
 
     ms = int(ms)
-    hours =  ms / 36000000L
-    minutes = (ms % 36000000L) / 600000L
-    seconds = ((ms % 36000000L) % 600000L) / 1.0E+04
+    hours =  ms // 36000000
+    minutes = (ms % 36000000) // 600000
+    seconds = ((ms % 36000000) % 600000) / 1.0E+04
     seconds_int  = int(seconds)
     seconds_frac = seconds - int(seconds)
-    useconds     = int(seconds_frac * 1e6)
+    useconds     = int(seconds_frac * 1.0E+06)
 
     return dt.datetime(y,m,d,hours,minutes,seconds_int,useconds)
 
@@ -87,19 +87,18 @@ def cntgs(s):
     tDisc = np.where(sDiff != 1)
     xDisc = np.asarray(tDisc)
     xDisc = xDisc[0]
-    nDisc = xDisc.shape[0]
-
+    nDisc = xDisc.shape[0]+1
     c     = np.zeros( (nDisc,2), dtype=np.int)
     for i in np.arange(nDisc):
         if (i==0):
             c[0,0] = 0
             c[0,1] = xDisc[0]
         elif (i==nDisc-1):
-            c[i,0] = xDisc[i]+1
+            c[i,0] = xDisc[i-1]+1
             c[i,1] = s.shape[0]-1
         else:
-            c[i,0] = xDisc[i]+1
-            c[i,1] = xDisc[i+1]
+            c[i,0] = xDisc[i-1]+1
+            c[i,1] = xDisc[i]
 
     return c
             
