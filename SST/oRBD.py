@@ -3,6 +3,7 @@ import sys, string, os, struct, glob
 import numpy as np
 import xml.etree.ElementTree as xmlet
 from astropy.io import fits
+import pdb
 
 # Our methods
 import oRBD
@@ -11,7 +12,7 @@ import oRBD
 #                                                              #
 #  Version Number. Change everytime the code is changed.       #
 #                                                              #
-Version = '20181015T1848BRT'                                   #
+Version = '20200426T2101BRT'                                   #
 #                                                              #
 ################################################################
 class RBD(object):
@@ -117,12 +118,62 @@ class RBD(object):
 #                        integer division now is //
 #                        viewkeys() -> keys()
 #                        reduce() method was altered
+#         - 2020-04-26 : added two new methods to RBD
+#                        __add__ : overload of '+' it allows to do >> d = d1+d2, with d1, d2 two RBD objects
+#                        extract : extracts an interval of time example
+#                             >>> time_interval = [datettime.datetime(2020,4,26,20,30,15,350), datettime.datetime(2020,4,26,20,40,28,550)]
+#                             >>> d1 = d.extract(time_interval)
 #
 ###############################################################################################
 
     def getVersion(self):
         return self.version
+
+    def extract(self,time_interval):
+        _temp_ = RBD()
+        _temp_.header = self.header
+        _temp_.MetaData = self.MetaData
+        _temp_.History.append('Extracted Interval : ' + str(time_interval))
+
+        t0 = int( 1.0E+04 * (time_interval[0].hour * 3600 + time_interval[0].minute * 60 + (time_interval[0].second + time_interval[0].microsecond/1.0E+06)))
+        t1 = int( 1.0E+04 * (time_interval[1].hour * 3600 + time_interval[1].minute * 60 + (time_interval[1].second + time_interval[1].microsecond/1.0E+06)))
         
+        TagList = list(self.Data.keys())
+        for iTag in TagList:
+            _temp_.Data[iTag] = self.Data[iTag][ (self.Data['time']>= t0 ) & ( self.Data['time'] <= t1)]
+
+        return _temp_
+
+        
+        
+
+    def __add__(self,d):
+
+        _temp_ = RBD()
+        
+        _temp_.Data      = {}
+        _temp_.Metadata  = {}
+        _temp_.header    = self.header
+        _temp_.History   = self.History
+
+        ISOTime     = [self.MetaData['ISOTime'],d.MetaData['ISOTime']]
+        RBDFileName = [self.MetaData['RBDFileName'], d.MetaData['RBDFileName']]
+        SSTType     = self.MetaData['SSTType']
+        ISODate     = self.MetaData['ISODate']
+            
+        _temp_.MetaData = { 'ISODate': ISODate,
+                            'ISOTime': ISOTime,
+                            'RBDFileName': RBDFileName,
+                            'SSTType':SSTType}
+                          
+        TagList = list(self.Data.keys())
+        for iTag in TagList:
+            _temp_.Data[iTag] = np.concatenate((self.Data[iTag],d.Data[iTag]))
+
+        _temp_.History.append('Concatenated Data')
+        
+        return _temp_
+    
     def getTimeAxis(self):
         """
 
@@ -627,17 +678,19 @@ class RBD(object):
 
         use:
               import oRBD
-              d1=oRBD.RBD([RBD filename1])
-              d1.readRBDinDictionary()
-              d2=oRBD.RBD([RBD filename2])
-              d2.readRBDinDictionary()
+              d1=oRBD.RBD()
+              d1.readRBDinDictionary([RBD filename1])
+              d2=oRBD.RBD()
+              d2.readRBDinDictionary([RBD filename2])
               d=oRBD.RBD()
-              d=d.concat([d1,d2])
+              d.concat([d1,d2])
 
         Change Record:
               First written by Guigue @ Sampa - 2017-09-08         
 
         """
+
+
         self.RBDfname =[]
         self.Data = {}
         self.Metadata = {}
