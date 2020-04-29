@@ -2,10 +2,11 @@
 import sys, string, os, struct, glob
 import numpy as np
 import datetime as dt
+from astropy.io import fits
 import pdb
 
 ##################################
-Version = '20200427T1800BRT'     #
+Version = '20200429T1900BRT'     #
 ##################################
 
 #######################################################
@@ -20,8 +21,8 @@ Version = '20200427T1800BRT'     #
 # reproduce identical results with a very well tested program.
 #
 # The method has a drawback, that one needs to fulfill part
-# of the Bpos structure (here is a dictionary), and has a
-# method to read the beam_pos.asc file. But, frankly, this is
+# of the Bpos structure (a dictionary in python), the rest is implemented as 
+# a method that reads the beam_pos.asc file. But, frankly, this is
 # a problem with SST data as well, which is not integrated! (Our fault)
 #
 # So, an example of use is as follows
@@ -167,10 +168,12 @@ class Flux(object):
 # coeff_bolt=S(flux)/2k so with S in sfu (10^22 W/m-2..)
         Bcoef = 2 * 0.138
         tp    = data.Data['time'].shape[0]
+        Output = 'FluxDensity'
         
 # Computed values
         tp = data.Data['time'].shape[0]
         if (temperature):
+            Output = 'Temperature'
             k212 = Bcoef 
             k405 = Bcoef
             res  = {'off'        : np.array(np.empty([tp],float)),
@@ -181,7 +184,7 @@ class Flux(object):
                     'ulel'       : np.array(np.empty([tp],int))  ,
                     'toz'        : np.array(np.empty([tp],float)),
                     'time'       : data.Data['time']             ,
-                    'dtime'      : np.array(np.empty([tp],dtype='datetime64'))
+                    'dtime'      : np.array(np.empty([tp],dtype='datetime64[us]'))
             }
             
         else:
@@ -195,7 +198,7 @@ class Flux(object):
                     'ulel'    : np.array(np.empty([tp],int))   ,
                     'toz'     : np.array(np.empty([tp],float)) ,
                     'time'    : data.Data['time']              ,
-                    'dtime'   : np.array(np.empty([tp],dtype='datetime64'))
+                    'dtime'   : np.array(np.empty([tp],dtype='datetime64[us]'))
             }
         
         x42 = self.Bpos['off'][3] - self.Bpos['off'][1] # az(4) - az(2)
@@ -211,9 +214,7 @@ class Flux(object):
         x_off = r42 * y43 - r43 * y42
         y_off = r43 * x42 - r42 * x43
 
-        modulo = tp/10
-
-        for ii in np.arange(tp-1):
+        for ii in np.arange(tp):
 
             t0 = data.Data['adcval'][ii,1]
             t1 = data.Data['adcval'][ii,2]
@@ -273,12 +274,154 @@ class Flux(object):
             res['dtime'][ii] = self.to_datetime(res['time'][ii])
             
         self.MetaData.update({'Version': self.version(),
-                              'Method' : 'Analytical'} )
+                              'Method' : 'Analytical',
+                              'Output' : Output        }
+        )
 
         self.History.append('Solved the Multibeam System')
         self.MBSol = res
         
         return
+
+    def writeFITS(self,FITSfname):
+
+        """
+        writeFITS:
+             A method to write the SST MB Solution in FITS format as a binary table. 
+             The file has a primary header and a table or secondary header. 
+
+             The system implements two headers. The primary header has general information, 
+             while the secondary header is specific for the table, including the units of the columns. 
+
+             Method taken from oRBD.py
+
+        Output:
+             It returns True or False on success or failure, respectively.
+
+        Change Record:
+             First written by Guigue @ Sampa - 2017-08-26
+             Return value added on 2017-11-02
+             Adapted to MB Solution on 2020-04-29
+        
+        """
+        
+        self.MetaData.update({'FITSfname':FITSfname})
+        
+        _isodate_ = self.MetaData['ISODate']
+        _hhmmss_  = [self.MBSol['dtime'][0].astype('str'),self.MBSol['dtime'][-1].astype('str')]
+        _hdu_     = fits.PrimaryHDU()
+
+        #
+        # This is the Primary (global) header. It gives information about the instrument, and the data.
+        #
+        _hdu_.header.append(('origin','CRAAM/Universidade Presbiteriana Mackenzie',''))
+        _hdu_.header.append(('telescop','Solar Submillimeter Telescope',''))
+        _hdu_.header.append(('observat','CASLEO',''))
+        _hdu_.header.append(('station','Lat = -31.79897222, Lon = -69.29669444, Height = 2.491 km',''))
+        _hdu_.header.append(('tz','GMT-3',''))
+
+        _hdu_.header.append(('date-obs',_isodate_,''))
+        _hdu_.header.append(('t_start',_hhmmss_[0],''))
+        _hdu_.header.append(('t_end',_hhmmss_[1],''))
+        _hdu_.header.append(('data_typ',self.MetaData['Output'],''))
+        if isinstance(self.MetaData['RBDFileName'],list) :
+            for iRBD in self.MetaData['RBDFileName']:_hdu_.header.append(('origfile',iRBD,'SST Raw Binary Data file'))
+        else:
+            _hdu_.header.append(('origfile',self.MetaData['RBDFileName'],'SST Raw Binary Data file'))
+            
+        _hdu_.header.append(('frequen','212 GHz; 405 GHz',''))
+
+        # About the Copyright
+        _hdu_.header.append(('comment','COPYRIGHT. Grant of use.',''))
+        _hdu_.header.append(('comment','These data are property of Universidade Presbiteriana Mackenzie.'))
+        _hdu_.header.append(('comment','The Centro de Radio Astronomia e Astrofisica Mackenzie is reponsible'))
+        _hdu_.header.append(('comment','for their distribution. Grant of use permission is given for Academic ')) 
+        _hdu_.header.append(('comment','purposes only.'))
+                            
+        for i in range(len(self.History)):
+            _hdu_.header.append(('history',self.History[i]))
+
+        # Secondary Header (Table)
+        _fits_cols_ = [  fits.Column(name   = 'OFF'   ,
+                                     format = '1E'    ,
+                                     unit   = 'arc minutes' ,
+                                     bscale = 1.0     ,
+                                     bzero  = 0       ,
+                                     array  = self.MBSol['off']),
+                         fits.Column(name   = 'EL'    ,
+                                     format = '1E'    ,
+                                     unit   = 'arc minutes' ,
+                                     bscale = 1.0     ,
+                                     bzero  = 0       ,
+                                     array  = self.MBSol['off']),
+                         fits.Column(name   = 'ULOFF' ,
+                                     format = '1E'    ,
+                                     unit   = ' '     ,
+                                     bscale = 1.0     ,
+                                     bzero  = 0       ,
+                                     array  = self.MBSol['uloff']),
+                         fits.Column(name   = 'ULEL'  ,
+                                     format = '1E'    ,
+                                     unit   = ' '     ,
+                                     bscale = 1.0     ,
+                                     bzero  = 0       ,
+                                     array  = self.MBSol['ulel']),
+                         fits.Column(name   = 'TOZ'   ,
+                                     format = '1E'    ,
+                                     unit   = ' '     ,
+                                     bscale = 1.0     ,
+                                     bzero  = 0       ,
+                                     array  = self.MBSol['toz']),
+                         fits.Column(name   = 'TIME'  ,
+                                     format = '1J'    ,
+                                     unit   = 'ms'    ,
+                                     bscale = 1.0     ,
+                                     bzero  = 0       ,
+                                     array  = self.MBSol['time'] // 10   ) # Convert husecs to milliseconds
+                         ]
+        
+        if (self.MetaData['Output'] == 'Temperature'):
+            _fits_cols_.append( fits.Column(name    = 'TEMP212',
+                                            format  = '1E'     ,
+                                            unit    = ' K '    ,
+                                            bscale  = 1.0      ,
+                                            bzero   = 0.0      ,
+                                            array   = self.MBSol['AntTemp212']))
+            _fits_cols_.append( fits.Column(name    = 'TEMP405',
+                                            format  = '1E'     ,
+                                            unit    = ' K '    ,
+                                            bscale  = 1.0      ,
+                                            bzero   = 0.0      ,
+                                            array   = self.MBSol['AntTemp405']))
+
+        if (self.MetaData['Output'] == 'FluxDensity'):
+            _fits_cols_.append( fits.Column(name    = 'FLUX212',
+                                            format  = '1E'     ,
+                                            unit    = ' K '    ,
+                                            bscale  = 1.0      ,
+                                            bzero   = 0.0      ,
+                                            array   = self.MBSol['Flux212']))
+            _fits_cols_.append( fits.Column(name    = 'FLUX405',
+                                            format  = '1E'     ,
+                                            unit    = ' K '    ,
+                                            bscale  = 1.0      ,
+                                            bzero   = 0.0      ,
+                                            array   = self.MBSol['Flux405']))
+        
+        _coldefs_ = fits.ColDefs(_fits_cols_)
+        _tbhdu_   = fits.BinTableHDU.from_columns(_coldefs_)
+        # About the units
+        _tbhdu_.header.append(('comment','Time is milliseconds from 0 UT',''))
+        _hduList_ = fits.HDUList([_hdu_,_tbhdu_])
+
+        if os.path.exists(self.MetaData['FITSfname']) :
+            print ('File '+ self.MetaData['FITSfname']+ '  already exist. Aborting....')
+            return False
+        else:
+            _hduList_.writeto(self.MetaData['FITSfname'])
+            
+        return True
+
 
 
 

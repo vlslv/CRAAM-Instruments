@@ -12,7 +12,7 @@ import oRBD
 #                                                              #
 #  Version Number. Change everytime the code is changed.       #
 #                                                              #
-Version = '20200426T2101BRT'                                   #
+Version = '20200429T1049BRT'                                   #
 #                                                              #
 ################################################################
 class RBD(object):
@@ -491,8 +491,6 @@ class RBD(object):
         else:
             print ('File '+self.InputPath+self.RBDfname+'  not found. Aborting...')
             return False
-
-        self.History.append('Converted to FITS level-0 with oRBD.py version '+self.version)
         
         return True
 
@@ -526,7 +524,7 @@ class RBD(object):
     def writeFITS(self) :
 
         _hhmmss_ = self.timeSpan()
-
+        self.History.append('Converted to FITS level-0 with oRBD.py version '+self.version)
         return self.writeFITSwithName('sst_'  +
                                self.MetaData['SSTType'].lower() + '_' +
                                self.MetaData['ISODate'] + 'T' +
