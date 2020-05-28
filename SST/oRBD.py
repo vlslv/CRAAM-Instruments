@@ -1,4 +1,5 @@
 # External methods
+
 import sys, string, os, struct, glob
 import numpy as np
 import xml.etree.ElementTree as xmlet
@@ -15,6 +16,7 @@ import oRBD
 Version = '20200429T1049BRT'                                   #
 #                                                              #
 ################################################################
+
 class RBD(object):
 
 ###############################################################################################
@@ -43,16 +45,6 @@ class RBD(object):
 #         The description of the data is included in the XML files. These files should be in the same
 #         directory of the python program.
 #
-#         New methods were added to this version.
-#           writeFITSwithName() : allows to give a non-standard name to the fits file
-#           concat() : allows to concatenate two or more RBD objects
-#           reduced() : creates a reduced version of the RBD object, leaving the most used variables.
-#
-#        Also the calling sequence was changed. Now when creating an object only some basic parameters
-#        are defined. For instance the input and output directories. You may changed them afterwards
-#        >>> d.InputPath = /path/to/files
-#        >>> d.OutputPath = /path/to/fits
-#
 #    Tests:
 #
 #         In order to assess the accuracy of the conversion to fits, a test was carried out using the
@@ -70,27 +62,20 @@ class RBD(object):
 #         was compared doing a substraction, and obtaining the mean and standard deviation. Were the
 #         mean different from zero, the program stopped and issue a message.  We found many tiny errors
 #         in the python procedures oRBD, that were corrected, repeating the test until mean = 0.
-#         See testRBD.py and testFITS.pro 
+#         See testFITS.pro 
 #
 #    Use:
-#            It is recommended to set the path where the XML files are. For instance
-#            $ export RBDXMLPATH=/path/to/xmlfiles
-#            > setenv RBDXMLPATH /path/to/xmlfiles
-#
 #            >>> import oRBD
-#            >>> d=oRBD.RBD(InputPath=[path],OutputPath=[path])
-#            >>> d.readRBDinDictionary([RBD filename])
+#            >>> d=oRBD.RBD([SST filename])
+#            >>> d.readRBDinDictionary()
 #            >>> d.writeFITS()
-#            If you want to put a non-standar name use
-#            >>> d.writeFITSwithName([FITS filename])
-#
 #            Check
 #            >>> from astropy.io import fits
 #            >>> h=fits.open([fits filename])
 #            >>> print h.info()
 #            >>> print(repr(h[0].header))             # Primary Header
 #            >>> print(repr(h[1].header))             # Table header
-#            >>> h[1].Data                            # Actual Data
+#            >>> h[1].data                            # Actual Data
 #
 #             Another check can be done with Solar Software
 #             IDL> r=mrdfits([fits filename],1,h,/unsigned) ; VERY important the unsigned parameter!!
@@ -230,7 +215,7 @@ class RBD(object):
             self.Data[tag]=v
 
         return
-        
+
     """------------------------------------------------------------------------------------ """
 
     def timeSpan(self):
@@ -243,13 +228,7 @@ class RBD(object):
              First written by Guigue @ Sampa - 2017-08-26
 
         """
-        
-        # Sometimes time=0 is registered. We do not normally observe at 0 UT, in the contrary
-        # this false value is created by a wrong program. In order to know the starting and end
-        # time of the data, we serch for values other than 0
         _nonzero_=self.Data['time'].nonzero()
-        
-        # Return the first and last _nonzero_ time converted to ISO standards
         return self.getISOTime(self.Data['time'][_nonzero_[0][0]]) ,self.getISOTime(self.Data['time'][_nonzero_[0][-1]])
         
     
@@ -282,14 +261,14 @@ class RBD(object):
            First written Guigue @ Sampa - 2017-08-26
 
         """
-        _hours_ = hustime // 36000000
-        _minutes_ = (hustime % 36000000) // 600000
-        _secs_ = (hustime - (_hours_ * 36000000 + _minutes_ * 600000)) // 10000.0
+        _hours_ = hustime / 36000000
+        _minutes_ = (hustime % 36000000) / 600000
+        _secs_ = (hustime - (_hours_ * 36000000 + _minutes_ * 600000)) / 10000.0
         return '{0:=02d}'.format(_hours_)+':'+ '{0:=02d}'.format(_minutes_) +':'+'{0:=06.3f}'.format(_secs_)
 
     """ -------------------------------------------------------------------------------------"""
     
-    def getISODate(self):
+    def getISODate(self,fname):
         """ 
         getISODate:
         Converts an SST filename in a ISO Date format. e.g.: RS1070812.1500 -> 2007-08-12
@@ -299,12 +278,12 @@ class RBD(object):
         the SST filename. 
 
         Output:
-        A list [Type,ISODate]
+        A vector [Type,ISODate]
 
         Change Record:
         First written by Guigue @ Sampa on 2017-08-19
         """
-        _bname_=self.base_name(self.RBDfname)                                # Get the base name (remove /path/to/file )
+        _bname_=self.base_name(fname)                                        # Get the base name (remove /path/to/file )
         try:
             _name1_,_name2_=_bname_.strip().split(".")                       # Does it have hours?
         except:
@@ -317,31 +296,15 @@ class RBD(object):
         if (_SSTprefix_ == 'RS'): SSTtype='Integration'
         if (_SSTprefix_ == 'RF'): SSTtype='Subintegration'
         if (_SSTprefix_ == 'BI'): SSTtype='Auxiliary'
-
-        # The SST RBD file names are formed of three parts:
-        #   2 characters to describe the type of data
-        #   8 or 9 characters to describe year, month and day
-        #   The separator dot .
-        #   For Data files (RS,RF) the time in the format HHMM
-        # Therefore a data file opened on 2017-08-31 at 17:32 hs
-        # is named RF1170831.1732. When the file correspond to
-        # Integrated Data the minutes are removed: RS1170831.1700
-        # For Auxiliary data, there is no indication of the time: BI1170831
-        #
-        # SST started to observe in 1999. The mechanism to create their filenames
-        # is wrong, since it takes the number of years since 1900.  Therefore
-        # the first year files started with 99, having the day description
-        # with 8 characters while, since 2000, files start with 100 and the
-        # day description has 9 characters. 
-        if (len(_name1_) == 8): 
+            
+        if (len(_name1_) == 8):
             date=str(int(_name1_[2:4])+1900) + '-' + _name1_[4:6] + '-' + _name1_[6:8]
         elif (len(_name1_) == 9):
             date=str(int(_name1_[2:5])+1900) + '-' + _name1_[5:7] + '-' + _name1_[7:9]
         else:
-            print (self.RBDfname+ '  is a wrong RBD Filename. Aborting...')
-            return False
-
-        # From the time description of the RBD file name we get
+            print 'Wrong RBD Filename. Aborting...'
+            sys.exit(1)
+            
         if (len(_name2_) == 4) :
             time=_name2_[0:2]+':'+_name2_[2:4]
         else:
@@ -352,7 +315,7 @@ class RBD(object):
         self.MetaData.update({'ISOTime'     : time   })
         self.MetaData.update({'SSTType'     : SSTtype})
         
-        return True
+        return type,date
 
     """-----------------------------------------------------------------------------"""
 
@@ -405,20 +368,18 @@ class RBD(object):
 
     """-----------------------------------------------------------------------------------------"""
     
-    def read_xml_header(self):
-        if not self.getISODate():
-            return False
-        _tt_        = oRBD.DataTimeSpan(self.PathToXML)
+    def read_xml_header(self,fname):
+        self.getISODate(fname)       
+        _tt_        = oRBD.DataTimeSpan()
         _hfname_    = _tt_.findHeaderFile(SSTType=self.MetaData['SSTType'],SSTDate=self.MetaData['ISODate'])
-        _xmlheader_ = xmlet.parse(self.PathToXML + _hfname_)
+        _xmlheader_ = xmlet.parse(_hfname_)
         self.hfname = _hfname_
         self.header = _xmlheader_.getroot()
-        return True
+        return
     
     """-----------------------------------------------------------------------------"""
     
-    def readRBDinDictionary(self,RBDfname='rs990501'):
-        
+    def readRBDinDictionary(self):
         """
         readRBDinDictionary
            It is the class method used to read a SST Raw Binary Data (RBD). The data is
@@ -426,30 +387,20 @@ class RBD(object):
            is stored in a numpy ndarray. Every ndarray has the python dtype corresponding to 
            the original SST data. 
 
-        Output:
-           It returns True or False
-
         Change Record:
            First Written by Guigue @ Sampa - 2017-08-26
 
         """
 
-        self.RBDfname = RBDfname
-        if not self.read_xml_header():
-            return 
-        
         self.define_fmt()
-        self.CleanPaths()
-        self.History = []
-        
         _fmt_    = self.bin_header['fmt']
         _header_ = self.bin_header['names']
         _ranges_ = self.bin_header['ranges']
         _Nfields_= len(_header_)
         
-        if os.path.exists(self.InputPath+self.RBDfname) :
-            _fd_         = os.open(self.InputPath+self.RBDfname,os.O_RDONLY)
-            _nrec_       = os.fstat(_fd_).st_size // struct.calcsize(_fmt_)
+        if os.path.exists(self.fname) :
+            _fd_         = os.open(self.fname,os.O_RDONLY)
+            _nrec_       = os.fstat(_fd_).st_size / struct.calcsize(_fmt_)
 
             for child in self.header:
             
@@ -491,32 +442,7 @@ class RBD(object):
         else:
             print ('File '+self.InputPath+self.RBDfname+'  not found. Aborting...')
             return False
-        
-        return True
-
-    """-----------------------------------------------------------------------------"""
-    def CleanPaths(self):
-        
-        """
-        It seems that fits.writeto does not understand the meaning of '~/'
-        We chhange for $HOME/
-        """
-        path = self.OutputPath.strip().split('/')
-        if (path[0] == '~') : path[0]=os.environ['HOME']
-        newpath=''
-        for ipath in path:
-            newpath+=ipath+'/'
-        if newpath[-2]=='/' : newpath=newpath[0:-1]
-        self.OutputPath=newpath
-
-        path = self.InputPath.strip().split('/')
-        if (path[0] == '~') : path[0]=os.environ['HOME']
-        newpath=''
-        for ipath in path:
-            newpath+=ipath+'/'
-        if newpath[-2]=='/' : newpath=newpath[0:-1]
-        self.InputPath=newpath
-
+          
         return
     
     """-----------------------------------------------------------------------------"""
@@ -530,9 +456,6 @@ class RBD(object):
                                self.MetaData['ISODate'] + 'T' +
                                _hhmmss_[0]+'-' + _hhmmss_[1] +
                                '_level0.fits')
-
-
-    """-----------------------------------------------------------------------------"""
 
     def writeFITSwithName(self,FITSfname):
 
@@ -662,7 +585,6 @@ class RBD(object):
             
         return True
 
-    """------------------------------------------------------------------------------------ """
 
     def concat(self,RBDlist) :
         """
@@ -688,22 +610,21 @@ class RBD(object):
 
         """
 
-
         self.RBDfname =[]
         self.Data = {}
         self.Metadata = {}
         self.header = RBDlist[0].header
-        self.History = RBDlist[0].History
-
+        
+        ISODate = []
         ISOTime = []
         RBDFileName = []
         SSTType = RBDlist[0].MetaData['SSTType']
-        ISODate = RBDlist[0].MetaData['ISODate']
         
         primDimension= 0
-        TagList = list(RBDlist[0].MetaData.keys())
+        TagList = list(RBDlist[0].MetaData.viewkeys())
         for iRBD in RBDlist :
             primDimension += iRBD.Data['time'].shape[0]
+            ISODate.append(iRBD.MetaData['ISODate'])
             ISOTime.append(iRBD.MetaData['ISOTime'])
             RBDFileName.append(iRBD.MetaData['RBDFileName'])
             
@@ -713,7 +634,7 @@ class RBD(object):
                           'SSTType':SSTType}
         
                           
-        TagList = list(RBDlist[0].Data.keys())
+        TagList = list(RBDlist[0].Data.viewkeys())
         for iTag in TagList:
             secDimension=0
             if len(RBDlist[0].Data[iTag].shape) > 1 :
@@ -728,148 +649,39 @@ class RBD(object):
             iLast=iFirst+iRBD.Data['time'].shape[0]
             for iTag in TagList: self.Data[iTag][iFirst:iLast]=iRBD.Data[iTag]
             iFirst=iLast
-
-        self.History.append('Concatenated Data')
-        
+                
         return 
             
             
     """------------------------------------------------------------------------------------ """
 
     def reduced(self):
-        """
-        reduced:
-             It produces a reduced form of the original data. It saves only the following columns in the 
-             table:
-
-             time    : time in Hus
-             azipos  : encoder's azimuth
-             elepos  : encoder's elevation
-             adc or adcval : receiver's output
-             opmode  : oberving mode
-             target  : target observed
-             x_off   : scan offset in azimuth
-             y_off   : scan offset in elevation
-    
-        use:
-            import oRBD
-            d=oRBD.RBD([RBD filename])
-            d.readRBDinDictionary()
-            d.reduced()
-
-        Change Record:
-
-            First written by Guigue @ Sampa - 2017-08-30
-
-        """
 
         ListToPreserve = ['time','adc','adcval','elepos','azipos','opmode','target','x_off','y_off']
-        ListToDelete = ['pm_daz', 'azierr', 'gps_status', 'pm_del', 'recnum', 'eleerr', 'pos_time', 'off']
-        
-        for iKey in ListToDelete:
-            try:
-                del self.Data[iKey]
-            except:
-                continue
 
-        ChildToRemove=[]
-        for iChild in self.header:
-            if ListToPreserve.count(iChild.attrib['VarName']) == 0 : ChildToRemove.append(iChild)
         
-        for iChildToRemove in ChildToRemove : self.header.remove(iChildToRemove)
-        self.History.append('Reduced Data File. Selected Variables saved')
+        for iKey in self.Data.keys():
+            if ListToPreserve.count(iKey) == 0 :
+                del self.Data[iKey]
+
+        for iChild in self.header:
+            if ListToPreserve.count(iChild.attrib['VarName']) == 0 :
+                self.header.remove(iChild)
 
         del self.bin_header
                 
         return
 
     """------------------------------------------------------------------------------------ """
-    def CheckXMLTables(self):
-        
-        if  not os.path.exists(self.PathToXML+'SSTDataFormatTimeSpanTable.xml')  :
-            print ('  ')
-            print ('File : '+ self.PathToXML+'SSTDataFormatTimeSpanTable.xml not found')
-            print ('Exiting...')
-            return False
 
-        if  not os.path.exists(self.PathToXML+'DataFormat-2002-12-14_to_2100-01-01.xml')  :
-            print ('  ')
-            print ('File : '+ self.PathToXML+'DataFormat-2002-12-14_to_2100-01-01.xml not found')
-            print ('Exiting...')
-            return False
+    def __init__(self,fname='rs990501'):
 
-        if  not os.path.exists(self.PathToXML+'DataFormat-2002-12-04_to_2002-12-13.xml')  :
-            print ('  ')
-            print ('File : '+ self.PathToXML+'DataFormat-2002-12-04_to_2002-12-13.xml not found')
-            print ('Exiting...')
-            return False
-        
-        if  not os.path.exists(self.PathToXML+'DataFormat-1999-05-02_to_2002-05-20.xml')  :
-            print ('  ')
-            print ('File : '+ self.PathToXML+'DataFormat-1999-05-02_to_2002-05-20.xml not found')
-            print ('Exiting...')
-            return False
-
-        if  not os.path.exists(self.PathToXML+'DataFormat-1900-01-01_to_1999-05-01.xml')  :
-            print ('  ')
-            print ('File : '+ self.PathToXML+'DataFormat-1900-01-01_to_1999-05-01.xml not found')
-            print ('Exiting...')
-            return False
-
-        if  not os.path.exists(self.PathToXML+'AuxiliaryDataFormat-2002-12-14_to_2100-01-01.xml')  :
-            print ('  ')
-            print ('File : '+ self.PathToXML+'AuxiliaryDataFormat-2002-12-14_to_2100-01-01.xml not found')
-            print ('Exiting...')
-            return False
-
-        if  not os.path.exists(self.PathToXML+'AuxiliaryDataFormat-2002-11-24_to_2002-12-13.xml')  :
-            print ('  ')
-            print ('File : '+ self.PathToXML+'AuxiliaryDataFormat-2002-11-24_to_2002-12-13.xml not found')
-            print ('Exiting...')
-            return False
-
-        if  not os.path.exists(self.PathToXML+'AuxiliaryDataFormat-2002-09-16_to_2002-11-23.xml')  :
-            print ('  ')
-            print ('File : '+ self.PathToXML+'AuxiliaryDataFormat-2002-09-16_to_2002-11-23.xml not found')
-            print ('Exiting...')
-            return False
-
-        if  not os.path.exists(self.PathToXML+'AuxiliaryDataFormat-1900-01-01_to_2002-09-15.xml')  :
-            print ('  ')
-            print ('File : '+ self.PathToXML+'AuxiliaryDataFormat-1900-01-01_to_2002-09-15.xml not found')
-            print ('Exiting...')
-            return False
-
-        return True
-
-    """------------------------------------------------------------------------------------ """
-
-    def __init__(self,PathToXML='',InputPath='./',OutputPath='./'):
-
-        # PathToXML should point to tha directory where the XML tables are copied
-        # When not defined, look at the environment
-        if (isinstance(PathToXML,str) and len(PathToXML) == 0):
-            if ('RBDXMLPATH' in os.environ.keys()):
-                    self.PathToXML = os.environ['RBDXMLPATH']
-            else:
-                self.PathToXML = './'
-        else:
-            self.PathToXML=PathToXML
-
-        if self.PathToXML[-1] != '/' :
-            self.PathToXML = self.PathToXML+'/'
-            
-        # Check the existence of the XML tables
-        if not self.CheckXMLTables() :
-            return 
-        
-        self.OutputPath = OutputPath
-        self.InputPath  = InputPath
-
+        self.fname = fname
         self.Data   = {}
         self.MetaData = {}
         self.History = []
-        self.version = Version
+        self.version = '20170829T12:08'
+        self.read_xml_header(fname)
         return 
 
 ######################################################################################
@@ -887,7 +699,7 @@ class DataTimeSpan(object):
        tt=oRBD.DataTimeSpan()
        type='Auxiliary'
        date='2017-08-19'
-       print (tt.findHeaderFile(SSTType=type,SSTDate=date))
+       print tt.findHeaderFile(SSTType=type,SSTDate=date)
 
     Change Record:
 
@@ -927,8 +739,7 @@ class DataTimeSpan(object):
 
     """------------------------------------------------------------------------"""
 
-    def __init__(self,PathToXML):
-        
-        _tt_ = xmlet.parse(PathToXML+'SSTDataFormatTimeSpanTable.xml')
+    def __init__(self):
+        _tt_ = xmlet.parse('/home/fer/Documents/myPYTHONstuff/modules/SSTDataFormatTimeSpanTable.xml')
         self.table = _tt_.getroot()
         return
