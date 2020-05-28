@@ -4,9 +4,18 @@ import sys, string, os, struct, glob
 import numpy as np
 import xml.etree.ElementTree as xmlet
 from astropy.io import fits
+import pdb
 
 # Our methods
 import oRBD
+
+################################################################
+#                                                              #
+#  Version Number. Change everytime the code is changed.       #
+#                                                              #
+Version = '20200429T1049BRT'                                   #
+#                                                              #
+################################################################
 
 class RBD(object):
 
@@ -82,8 +91,130 @@ class RBD(object):
 #         - 2017-06-15 : First written
 #         - 2017-08-19 : xml files implementation
 #         - 2017-08-29 : writeFITS implementation
+#         - 2017-11-02 : Check that PathToXML points to the XML tables repositories.
+#                        readRBDinDictionary() and writeFITS() methods return True or False.
+#
+#         - 2018-10-09 : adapted for python 3
+#                        print --> print()
+#                        integer division now is //
+#                        
+#         - 2018-10-12 : adapted for python 3
+#                        print --> print()
+#                        integer division now is //
+#                        viewkeys() -> keys()
+#                        reduce() method was altered
+#         - 2020-04-26 : added two new methods to RBD
+#                        __add__ : overload of '+' it allows to do >> d = d1+d2, with d1, d2 two RBD objects
+#                        extract : extracts an interval of time example
+#                             >>> time_interval = [datettime.datetime(2020,4,26,20,30,15,350), datettime.datetime(2020,4,26,20,40,28,550)]
+#                             >>> d1 = d.extract(time_interval)
 #
 ###############################################################################################
+
+    def getVersion(self):
+        return self.version
+
+    def extract(self,time_interval):
+        _temp_ = RBD()
+        _temp_.header = self.header
+        _temp_.MetaData = self.MetaData
+        _temp_.History.append('Extracted Interval : ' + str(time_interval))
+
+        t0 = int( 1.0E+04 * (time_interval[0].hour * 3600 + time_interval[0].minute * 60 + (time_interval[0].second + time_interval[0].microsecond/1.0E+06)))
+        t1 = int( 1.0E+04 * (time_interval[1].hour * 3600 + time_interval[1].minute * 60 + (time_interval[1].second + time_interval[1].microsecond/1.0E+06)))
+        
+        TagList = list(self.Data.keys())
+        for iTag in TagList:
+            _temp_.Data[iTag] = self.Data[iTag][ (self.Data['time']>= t0 ) & ( self.Data['time'] <= t1)]
+
+        return _temp_
+
+        
+        
+
+    def __add__(self,d):
+
+        _temp_ = RBD()
+        
+        _temp_.Data      = {}
+        _temp_.Metadata  = {}
+        _temp_.header    = self.header
+        _temp_.History   = self.History
+
+        ISOTime     = [self.MetaData['ISOTime'],d.MetaData['ISOTime']]
+        RBDFileName = [self.MetaData['RBDFileName'], d.MetaData['RBDFileName']]
+        SSTType     = self.MetaData['SSTType']
+        ISODate     = self.MetaData['ISODate']
+            
+        _temp_.MetaData = { 'ISODate': ISODate,
+                            'ISOTime': ISOTime,
+                            'RBDFileName': RBDFileName,
+                            'SSTType':SSTType}
+                          
+        TagList = list(self.Data.keys())
+        for iTag in TagList:
+            _temp_.Data[iTag] = np.concatenate((self.Data[iTag],d.Data[iTag]))
+
+        _temp_.History.append('Concatenated Data')
+        
+        return _temp_
+    
+    def getTimeAxis(self):
+        """
+
+        getTimeAxis: Class method to convert the us time axis used in RBD files to a Python
+                     datetime ndarray that can be used with matplotlib.pyplot.
+
+        Change Record:  First written by Guigue @ Sampa
+                        2017-11-04 St Charles Day !!!
+
+        """
+
+        import datetime as dt
+        ndata = self.Data['time'].shape[0]
+
+        ssttime = np.array(np.empty(ndata),dtype=dt.datetime)
+        year  = int(self.MetaData['ISODate'][0:4])
+        month = int(self.MetaData['ISODate'][5:7])
+        day   = int(self.MetaData['ISODate'][8:])
+        for i in np.arange(ndata):
+            ms = self.Data['time'][i]
+            hours =  ms // 36000000
+            minutes = (ms % 36000000) // 600000
+            seconds = ((ms % 36000000) % 600000) / 1.0E+04
+            seconds_int  = int(seconds)
+            seconds_frac = seconds - int(seconds)
+            useconds     = int(seconds_frac * 1e6)
+            ssttime[i] = dt.datetime(year,month,day,hours,minutes,seconds_int,useconds)
+                        
+        return ssttime
+
+    """-------------------------------------------------------------------------------------"""
+    def CorrectAuxiliary(self):
+        """
+        CorectAuxiliary: For some unknown reason Auxiliary files (a.k.a. BI files) have a 0 record
+                         when SST start_obs command is given. A 0 record means all fields are 0. 
+                         This method corrects this problem deleting the flawed records. 
+                         To verify the record does not correspond to O UT, we check that ADC are 0 too.
+
+                         It only works for Auxiliary files.
+
+        Change Record: First written by Guigue @ Sampa
+                       2017-11-04 St Charles Day !!
+                       2017-11-07 Completely changed, using python tools. Ethernal LOVE to Python!!
+
+        """
+        
+        if (self.MetaData['SSTType'] != 'Auxiliary'):
+            return
+
+        Mask = (self.Data['time'] != 0 & np.all(self.Data['adc'] != 0) )
+        TagList = self.Data.keys()
+        for tag in TagList:
+            v=self.Data[tag][Mask]
+            self.Data[tag]=v
+
+        return
 
     """------------------------------------------------------------------------------------ """
 
@@ -309,14 +440,24 @@ class RBD(object):
                             
             os.close(_fd_)
         else:
-            print 'File '+fname+'  not found'
-
-        self.History.append('Converted to FITS level-0 with oRBD.py version '+self.version)
-        
+            print ('File '+self.InputPath+self.RBDfname+'  not found. Aborting...')
+            return False
+          
         return
-        
+    
     """-----------------------------------------------------------------------------"""
-    def writeFITS(self):
+
+    def writeFITS(self) :
+
+        _hhmmss_ = self.timeSpan()
+        self.History.append('Converted to FITS level-0 with oRBD.py version '+self.version)
+        return self.writeFITSwithName('sst_'  +
+                               self.MetaData['SSTType'].lower() + '_' +
+                               self.MetaData['ISODate'] + 'T' +
+                               _hhmmss_[0]+'-' + _hhmmss_[1] +
+                               '_level0.fits')
+
+    def writeFITSwithName(self,FITSfname):
 
         """
         writeFITS:
@@ -330,24 +471,21 @@ class RBD(object):
 
              The system implements two headers. The primary header has general information, while the secondary
              header is specific for the table, including the units of the columns. 
-                
+
+        Output:
+             It returns True or False on success or failure respectively.
+
         Change Record:
              First written by Guigue @ Sampa - 2017-08-26
+             Return value added on 2017-11-02
         
         """
+        self.CleanPaths()
+        self.MetaData.update({'FITSfname':FITSfname})
 
+        _isodate_ = self.MetaData['ISODate']
         _hhmmss_ = self.timeSpan()
-
-        if len(self.MetaData['ISODate']) == 1 :
-            _isodate_ = self.MetaData['ISODate']
-        else: 
-            _isodate_ = self.MetaData['ISODate'][0]
-             
-        _fits_fname_ = 'sst_'  + self.MetaData['SSTType'].lower() + '_' + _isodate_ + 'T' + _hhmmss_[0]+'-' + _hhmmss_[1] + '_level0.fits'
         
-        
-        self.MetaData.update({'FITSfname':_fits_fname_})
-
         _hdu_ = fits.PrimaryHDU()
 
         #
@@ -365,11 +503,11 @@ class RBD(object):
         _hdu_.header.append(('t_start',_isodate_+'T'+ _hhmmss_[0],''))
         _hdu_.header.append(('t_end',_isodate_+'T'+ _hhmmss_[1],''))
         _hdu_.header.append(('data_typ',self.MetaData['SSTType'],''))
-        if len(self.MetaData['RBDFileName']) == 1:
-            _hdu_.header.append(('origfile',self.MetaData['RBDFileName'],'SST Raw Binary Data file'))
-        else:
+        if isinstance(self.MetaData['RBDFileName'],list) :
             for iRBD in self.MetaData['RBDFileName']:_hdu_.header.append(('origfile',iRBD,'SST Raw Binary Data file'))
-                
+        else:
+            _hdu_.header.append(('origfile',self.MetaData['RBDFileName'],'SST Raw Binary Data file'))
+            
         _hdu_.header.append(('frequen','212 GHz ch=1,2,3,4; 405 GHz ch=5,6',''))
 
         # About the Copyright
@@ -377,7 +515,7 @@ class RBD(object):
         _hdu_.header.append(('comment','These data are property of Universidade Presbiteriana Mackenzie.'))
         _hdu_.header.append(('comment','The Centro de Radio Astronomia e Astrofisica Mackenzie is reponsible'))
         _hdu_.header.append(('comment','for their distribution. Grant of use permission is given for Academic ')) 
-        _hdu_.header.append(('comment','purposes only. When in doubt, contact guigue@craam.mackenzie.br'))
+        _hdu_.header.append(('comment','purposes only.'))
                             
         for i in range(len(self.History)):
             _hdu_.header.append(('history',self.History[i]))
@@ -436,20 +574,43 @@ class RBD(object):
         _tbhdu_.header.append(('comment','Temperatures are in Celsius',''))
 
         _hduList_ = fits.HDUList([_hdu_,_tbhdu_])
-        
-        if os.path.exists(_fits_fname_) :
-            print 'File '+_fits_fname_+ 'already exist. Aborting....'
-            sys.exit(1) 
-        else:
-            _hduList_.writeto(_fits_fname_)
-            
-        return 
 
-    """------------------------------------------------------------------------------------ """
+        self.CleanPaths() 
+            
+        if os.path.exists(self.OutputPath+self.MetaData['FITSfname']) :
+            print ('File '+ self.OutputPath+self.MetaData['FITSfname']+ '  already exist. Aborting....')
+            return False
+        else:
+            _hduList_.writeto(self.OutputPath+self.MetaData['FITSfname'])
+            
+        return True
+
 
     def concat(self,RBDlist) :
-        
-        self.fname =[]
+        """
+        concat:
+               A method to concatenate two or more RBD objects. 
+               The procedures doesn't check for the similarity of the objects.
+               The user must provide two objects with the same Data structure. 
+
+               The procedure doesn't check neither the time sequence. The user 
+               must take care of it.
+
+        use:
+              import oRBD
+              d1=oRBD.RBD()
+              d1.readRBDinDictionary([RBD filename1])
+              d2=oRBD.RBD()
+              d2.readRBDinDictionary([RBD filename2])
+              d=oRBD.RBD()
+              d.concat([d1,d2])
+
+        Change Record:
+              First written by Guigue @ Sampa - 2017-09-08         
+
+        """
+
+        self.RBDfname =[]
         self.Data = {}
         self.Metadata = {}
         self.header = RBDlist[0].header
