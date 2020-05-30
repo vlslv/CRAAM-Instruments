@@ -1,6 +1,5 @@
 # A simple test for the scripts
-import sys
-sys.path.append("Deprecated")
+
 import oSST
 d=oSST.SST()
 d.data_path='./TestData'
