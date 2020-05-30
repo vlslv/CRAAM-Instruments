@@ -3,6 +3,7 @@ import sys, string, os, struct, glob
 import numpy as np
 import xml.etree.ElementTree as xmlet
 from astropy.io import fits
+import CASLEO
 import pdb
 
 # Our methods
@@ -38,7 +39,7 @@ class RBD(object):
 #         The fits level-0 file has two headers. The primary one has general information about the
 #         data, including frequencies, geographical coordinates of the observatory, etc. The second
 #         header includes th description of the data represented as a binary table. The description
-#         includes the data units. 
+#         includes the data units.
 #
 #         The description of the data is included in the XML files. These files should be in the same
 #         directory of the python program.
@@ -57,7 +58,7 @@ class RBD(object):
 #
 #         In order to assess the accuracy of the conversion to fits, a test was carried out using the
 #         following files
-#             bi1010822 --> sst_auxiliary_2001-08-22T14:04:40.034-23:45:04.714_level0.fits           
+#             bi1010822 --> sst_auxiliary_2001-08-22T14:04:40.034-23:45:04.714_level0.fits
 #             bi1021019 --> sst_auxiliary_2002-10-19T11:24:39.704-21:37:04.235_level0.fits
 #             bi1021202 --> sst_auxiliary_2002-12-02T02:01:34.154-23:18:05.244_level0.fits
 #             bi1021221 --> sst_auxiliary_2002-12-21T11:15:57.732-22:26:07.212_level0.fits
@@ -70,7 +71,7 @@ class RBD(object):
 #         was compared doing a substraction, and obtaining the mean and standard deviation. Were the
 #         mean different from zero, the program stopped and issue a message.  We found many tiny errors
 #         in the python procedures oRBD, that were corrected, repeating the test until mean = 0.
-#         See testRBD.py and testFITS.pro 
+#         See testRBD.py and testFITS.pro
 #
 #    Use:
 #            It is recommended to set the path where the XML files are. For instance
@@ -102,7 +103,7 @@ class RBD(object):
 #             http://www.guigue.gcastro.net
 #
 #
-#    Change Record :  
+#    Change Record :
 #         - 2017-06-15 : First written
 #         - 2017-08-19 : xml files implementation
 #         - 2017-08-29 : writeFITS implementation
@@ -112,7 +113,7 @@ class RBD(object):
 #         - 2018-10-09 : adapted for python 3
 #                        print --> print()
 #                        integer division now is //
-#                        
+#
 #         - 2018-10-12 : adapted for python 3
 #                        print --> print()
 #                        integer division now is //
@@ -121,8 +122,9 @@ class RBD(object):
 #         - 2020-04-26 : added two new methods to RBD
 #                        __add__ : overload of '+' it allows to do >> d = d1+d2, with d1, d2 two RBD objects
 #                        extract : extracts an interval of time example
-#                             >>> time_interval = [datettime.datetime(2020,4,26,20,30,15,350), datettime.datetime(2020,4,26,20,40,28,550)]
+#                             >>> time_interval = [datetime.datetime(2020,4,26,20,30,15,350), datetime.datetime(2020,4,26,20,40,28,550)]
 #                             >>> d1 = d.extract(time_interval)
+#         - 2020-05-29 : now CASLEO information is in separate function.
 #
 ###############################################################################################
 
@@ -137,20 +139,20 @@ class RBD(object):
 
         t0 = int( 1.0E+04 * (time_interval[0].hour * 3600 + time_interval[0].minute * 60 + (time_interval[0].second + time_interval[0].microsecond/1.0E+06)))
         t1 = int( 1.0E+04 * (time_interval[1].hour * 3600 + time_interval[1].minute * 60 + (time_interval[1].second + time_interval[1].microsecond/1.0E+06)))
-        
+
         TagList = list(self.Data.keys())
         for iTag in TagList:
             _temp_.Data[iTag] = self.Data[iTag][ (self.Data['time']>= t0 ) & ( self.Data['time'] <= t1)]
 
         return _temp_
 
-        
-        
+
+
 
     def __add__(self,d):
 
         _temp_ = RBD()
-        
+
         _temp_.Data      = {}
         _temp_.Metadata  = {}
         _temp_.header    = self.header
@@ -160,20 +162,20 @@ class RBD(object):
         RBDFileName = [self.MetaData['RBDFileName'], d.MetaData['RBDFileName']]
         SSTType     = self.MetaData['SSTType']
         ISODate     = self.MetaData['ISODate']
-            
+
         _temp_.MetaData = { 'ISODate': ISODate,
                             'ISOTime': ISOTime,
                             'RBDFileName': RBDFileName,
                             'SSTType':SSTType}
-                          
+
         TagList = list(self.Data.keys())
         for iTag in TagList:
             _temp_.Data[iTag] = np.concatenate((self.Data[iTag],d.Data[iTag]))
 
         _temp_.History.append('Concatenated Data')
-        
+
         return _temp_
-    
+
     def getTimeAxis(self):
         """
 
@@ -201,15 +203,15 @@ class RBD(object):
             seconds_frac = seconds - int(seconds)
             useconds     = int(seconds_frac * 1e6)
             ssttime[i] = dt.datetime(year,month,day,hours,minutes,seconds_int,useconds)
-                        
+
         return ssttime
 
     """-------------------------------------------------------------------------------------"""
     def CorrectAuxiliary(self):
         """
         CorectAuxiliary: For some unknown reason Auxiliary files (a.k.a. BI files) have a 0 record
-                         when SST start_obs command is given. A 0 record means all fields are 0. 
-                         This method corrects this problem deleting the flawed records. 
+                         when SST start_obs command is given. A 0 record means all fields are 0.
+                         This method corrects this problem deleting the flawed records.
                          To verify the record does not correspond to O UT, we check that ADC are 0 too.
 
                          It only works for Auxiliary files.
@@ -219,7 +221,7 @@ class RBD(object):
                        2017-11-07 Completely changed, using python tools. Ethernal LOVE to Python!!
 
         """
-        
+
         if (self.MetaData['SSTType'] != 'Auxiliary'):
             return
 
@@ -230,7 +232,7 @@ class RBD(object):
             self.Data[tag]=v
 
         return
-        
+
     """------------------------------------------------------------------------------------ """
 
     def timeSpan(self):
@@ -243,16 +245,16 @@ class RBD(object):
              First written by Guigue @ Sampa - 2017-08-26
 
         """
-        
+
         # Sometimes time=0 is registered. We do not normally observe at 0 UT, in the contrary
         # this false value is created by a wrong program. In order to know the starting and end
         # time of the data, we serch for values other than 0
         _nonzero_=self.Data['time'].nonzero()
-        
+
         # Return the first and last _nonzero_ time converted to ISO standards
         return self.getISOTime(self.Data['time'][_nonzero_[0][0]]) ,self.getISOTime(self.Data['time'][_nonzero_[0][-1]])
-        
-    
+
+
     """-------------------------------------------------------------------------------------"""
     def base_name(self,fname):
         """
@@ -274,8 +276,8 @@ class RBD(object):
         getISOTime:
            Convert from Hus (hundred of microseconds) to HH:MM:SS.SSSS
 
-        inputs: 
-           hustime : a 4bytes integer with the time in hundred of microseconds since 0 UT. 
+        inputs:
+           hustime : a 4bytes integer with the time in hundred of microseconds since 0 UT.
                      hustime is the SST time format.
 
         Change Record:
@@ -288,15 +290,15 @@ class RBD(object):
         return '{0:=02d}'.format(_hours_)+':'+ '{0:=02d}'.format(_minutes_) +':'+'{0:=06.3f}'.format(_secs_)
 
     """ -------------------------------------------------------------------------------------"""
-    
+
     def getISODate(self):
-        """ 
+        """
         getISODate:
         Converts an SST filename in a ISO Date format. e.g.: RS1070812.1500 -> 2007-08-12
         It also sets the data type to Data (for RS and RF files) and Auxiliary (for BI)
 
         Input:
-        the SST filename. 
+        the SST filename.
 
         Output:
         A list [Type,ISODate]
@@ -313,7 +315,7 @@ class RBD(object):
 
         _SSTprefix_ = _name1_[0:2].upper()
         _SSTtype_ = ''
-    
+
         if (_SSTprefix_ == 'RS'): SSTtype='Integration'
         if (_SSTprefix_ == 'RF'): SSTtype='Subintegration'
         if (_SSTprefix_ == 'BI'): SSTtype='Auxiliary'
@@ -332,8 +334,8 @@ class RBD(object):
         # is wrong, since it takes the number of years since 1900.  Therefore
         # the first year files started with 99, having the day description
         # with 8 characters while, since 2000, files start with 100 and the
-        # day description has 9 characters. 
-        if (len(_name1_) == 8): 
+        # day description has 9 characters.
+        if (len(_name1_) == 8):
             date=str(int(_name1_[2:4])+1900) + '-' + _name1_[4:6] + '-' + _name1_[6:8]
         elif (len(_name1_) == 9):
             date=str(int(_name1_[2:5])+1900) + '-' + _name1_[5:7] + '-' + _name1_[7:9]
@@ -346,12 +348,12 @@ class RBD(object):
             time=_name2_[0:2]+':'+_name2_[2:4]
         else:
             time='00:00'
-        
+
         self.MetaData.update({'RBDFileName' : _bname_})
         self.MetaData.update({'ISODate'     : date   })
         self.MetaData.update({'ISOTime'     : time   })
         self.MetaData.update({'SSTType'     : SSTtype})
-        
+
         return True
 
     """-----------------------------------------------------------------------------"""
@@ -365,11 +367,11 @@ class RBD(object):
                 can read one record and put it in a list (vector) of 'unpacked' data
         2) ranges : it is a list of 2-members lists. Every member points to the begginning and the end
                     of a variable in the 'unpacked' list (vector)
-        3) fieldnames : it is a list of field names in the binary file. It will be used to create the FITS 
+        3) fieldnames : it is a list of field names in the binary file. It will be used to create the FITS
                         header
 
         Change Record:
-        First created by Guigue @ Sampa 2017.08.20 : checked against the xml files only.  
+        First created by Guigue @ Sampa 2017.08.20 : checked against the xml files only.
 
         """
         # Internal variables destroyed at the end of procedure
@@ -378,9 +380,9 @@ class RBD(object):
         _ranges_     = []
         _fielditer_  = 0
         _TotalDim_   = 0
-        
+
         for child in self.header:
-            
+
             # xml table. Children have three fields
             _VarName_ = child[0].text                                          # Variable Name
             _VarDim_  = int(child[1].text)                                     # Variable Dimension
@@ -390,13 +392,13 @@ class RBD(object):
             _fieldnames_.append(_VarName_)
             _ranges_.append([_fielditer_,_fielditer_+_VarDim_-1])
             _fielditer_+=_VarDim_
-            
+
             for i in range(_VarDim_):
-                # A short table that converts from xml types to python bynary formats 
+                # A short table that converts from xml types to python bynary formats
                 if ( _VarType_ == 'xs:int')           : _fmt_ = _fmt_ + 'i'  # a 4 bytes integer
                 if ( _VarType_ == 'xs:unsignedShort') : _fmt_ = _fmt_ + 'H'  # a 2 bytes unsigned integer
                 if ( _VarType_ == 'xs:short')         : _fmt_ = _fmt_ + 'h'  # a 2 bytes integer
-                if ( _VarType_ == 'xs:byte')          : _fmt_ = _fmt_ + 'B'  # a byte 
+                if ( _VarType_ == 'xs:byte')          : _fmt_ = _fmt_ + 'B'  # a byte
                 if ( _VarType_ == 'xs:float')         : _fmt_ = _fmt_ + 'f'  # a 4 bytes float
 
             bin_header = {'names':_fieldnames_, 'ranges':_ranges_,'fmt':_fmt_,'TotalDim':_TotalDim_}
@@ -404,7 +406,7 @@ class RBD(object):
         return
 
     """-----------------------------------------------------------------------------------------"""
-    
+
     def read_xml_header(self):
         if not self.getISODate():
             return False
@@ -414,17 +416,17 @@ class RBD(object):
         self.hfname = _hfname_
         self.header = _xmlheader_.getroot()
         return True
-    
+
     """-----------------------------------------------------------------------------"""
-    
+
     def readRBDinDictionary(self,RBDfname='rs990501'):
-        
+
         """
         readRBDinDictionary
            It is the class method used to read a SST Raw Binary Data (RBD). The data is
-           represented with a dictionary, each element represents one SST variable, and data 
-           is stored in a numpy ndarray. Every ndarray has the python dtype corresponding to 
-           the original SST data. 
+           represented with a dictionary, each element represents one SST variable, and data
+           is stored in a numpy ndarray. Every ndarray has the python dtype corresponding to
+           the original SST data.
 
         Output:
            It returns True or False
@@ -436,29 +438,29 @@ class RBD(object):
 
         self.RBDfname = RBDfname
         if not self.read_xml_header():
-            return 
-        
+            return
+
         self.define_fmt()
         self.CleanPaths()
         self.History = []
-        
+
         _fmt_    = self.bin_header['fmt']
         _header_ = self.bin_header['names']
         _ranges_ = self.bin_header['ranges']
         _Nfields_= len(_header_)
-        
+
         if os.path.exists(self.InputPath+self.RBDfname) :
             _fd_         = os.open(self.InputPath+self.RBDfname,os.O_RDONLY)
             _nrec_       = os.fstat(_fd_).st_size // struct.calcsize(_fmt_)
 
             for child in self.header:
-            
+
                 # xml table. Children have three fields
                 _VarName_ = child[0].text                                          # Variable Name
                 _VarDim_  = int(child[1].text)                                     # Variable Dimension
                 _VarType_ = child[2].text                                          # Variable type
 
-                 # A short table that converts from xml types to python bynary formats 
+                 # A short table that converts from xml types to python bynary formats
                 if ( _VarType_ == 'xs:int') :
                      _nptype_ = np.int32   # a 4 bytes integer
                 elif ( _VarType_ == 'xs:unsignedShort') :
@@ -466,12 +468,12 @@ class RBD(object):
                 elif ( _VarType_ == 'xs:short')         :
                      _nptype_ = np.int16   # a 2 bytes integer
                 elif ( _VarType_ == 'xs:byte')          :
-                     _nptype_ = np.byte    # a byte 
+                     _nptype_ = np.byte    # a byte
                 elif ( _VarType_ == 'xs:float')         :
                      _nptype_ = np.float32 # a 4 bytes float
                 else:
                      _nptype_ = np.float32
-                     
+
                 if (_VarDim_ == 1):
                     self.Data.update( {_VarName_ : np.array(np.empty([_nrec_],_nptype_)) })
                 else:
@@ -486,17 +488,17 @@ class RBD(object):
                         self.Data[_header_[_field_]][_irec_]= _ur_[_ranges_[_field_][0]]
                     else:
                         self.Data[_header_[_field_]][_irec_,...] = _ur_[_ranges_[_field_][0]:_ranges_[_field_][1]+1]
-                            
+
             os.close(_fd_)
         else:
             print ('File '+self.InputPath+self.RBDfname+'  not found. Aborting...')
             return False
-        
+
         return True
 
     """-----------------------------------------------------------------------------"""
     def CleanPaths(self):
-        
+
         """
         It seems that fits.writeto does not understand the meaning of '~/'
         We chhange for $HOME/
@@ -518,7 +520,7 @@ class RBD(object):
         self.InputPath=newpath
 
         return
-    
+
     """-----------------------------------------------------------------------------"""
 
     def writeFITS(self) :
@@ -538,16 +540,16 @@ class RBD(object):
 
         """
         writeFITS:
-             A method to write the SST data as a FITS file. The fits format used is a binary table. 
+             A method to write the SST data as a FITS file. The fits format used is a binary table.
              Then the file has a primary and a table or secondary header. It also defines the name of the fits file as
 
              sst_[integration | subintegration | auxiliary]_YYYY-MM-DDTHH:MM:SS.SSS-HH:MM:SS.SSS_level0.fits
 
-             integration is a RS file, subintegration is a RF file and auxiliary is a BI file. 
-             If the file already exist, the system breaks. 
+             integration is a RS file, subintegration is a RF file and auxiliary is a BI file.
+             If the file already exist, the system breaks.
 
              The system implements two headers. The primary header has general information, while the secondary
-             header is specific for the table, including the units of the columns. 
+             header is specific for the table, including the units of the columns.
 
         Output:
              It returns True or False on success or failure respectively.
@@ -555,14 +557,17 @@ class RBD(object):
         Change Record:
              First written by Guigue @ Sampa - 2017-08-26
              Return value added on 2017-11-02
-        
+
         """
+
+        cg = CASLEO.Observatory_Coordinates()
+
         self.CleanPaths()
         self.MetaData.update({'FITSfname':FITSfname})
 
         _isodate_ = self.MetaData['ISODate']
         _hhmmss_ = self.timeSpan()
-        
+
         _hdu_ = fits.PrimaryHDU()
 
         #
@@ -573,7 +578,8 @@ class RBD(object):
         _hdu_.header.append(('origin','CRAAM/Universidade Presbiteriana Mackenzie',''))
         _hdu_.header.append(('telescop','Solar Submillimeter Telescope',''))
         _hdu_.header.append(('observat','CASLEO',''))
-        _hdu_.header.append(('station','Lat = -31.79897222, Lon = -69.29669444, Height = 2.491 km',''))
+
+        _hdu_.header.append(('station','Lat = {0:12.8f}, Lon = {1:12.8f}, Height = {2:5.3f} km'.format(cg.lat.value, cg.lon.value, cg.height.value/1000),''))
         _hdu_.header.append(('tz','GMT-3',''))
 
         _hdu_.header.append(('date-obs',_isodate_,''))
@@ -584,22 +590,22 @@ class RBD(object):
             for iRBD in self.MetaData['RBDFileName']:_hdu_.header.append(('origfile',iRBD,'SST Raw Binary Data file'))
         else:
             _hdu_.header.append(('origfile',self.MetaData['RBDFileName'],'SST Raw Binary Data file'))
-            
+
         _hdu_.header.append(('frequen','212 GHz ch=1,2,3,4; 405 GHz ch=5,6',''))
 
         # About the Copyright
         _hdu_.header.append(('comment','COPYRIGHT. Grant of use.',''))
         _hdu_.header.append(('comment','These data are property of Universidade Presbiteriana Mackenzie.'))
         _hdu_.header.append(('comment','The Centro de Radio Astronomia e Astrofisica Mackenzie is reponsible'))
-        _hdu_.header.append(('comment','for their distribution. Grant of use permission is given for Academic ')) 
+        _hdu_.header.append(('comment','for their distribution. Grant of use permission is given for Academic '))
         _hdu_.header.append(('comment','purposes only.'))
-                            
+
         for i in range(len(self.History)):
             _hdu_.header.append(('history',self.History[i]))
 
         _fits_cols_ = []
         for _child_ in self.header:
-            
+
             # xml table. Children have four fields
             _ttype_   = _child_[0].text      # Name
             _tform_   = _child_[1].text      # (Dimension) Format
@@ -607,11 +613,11 @@ class RBD(object):
             _tzero_   = 0                    # Effective 0 (to mimmic an unsigned integer)
             _tscal_   = 1.0                  # Data Scaling Factor
             _VarType_ = _child_[2].text      # Variable type
-                        
-            if ( _VarType_ == 'xs:int') : 
+
+            if ( _VarType_ == 'xs:int') :
                 _tform_ += 'J'
                 _np_form_ = np.dtype('i4')
-                
+
             if ( _VarType_ == 'xs:unsignedShort') :
                 # FITS does not have unsignedShort representation
                 # The way to represent them correctly is to use
@@ -621,15 +627,15 @@ class RBD(object):
                 _tform_ += 'I'
                 _tzero_ = 32768
                 _np_form_ = np.dtype('u2')
-                
+
             if ( _VarType_ == 'xs:short'):
                 _tform_ += 'I'
                 _np_form_ = np.dtype('i2')
-                
+
             if ( _VarType_ == 'xs:byte') :
                 _tform_ += 'B'
                 _np_form_=np.dtype('b')
-                
+
             if ( _VarType_ == 'xs:float') :
                 _tform_ += 'E'
                 _np_form_=np.dtype('f4')
@@ -641,7 +647,7 @@ class RBD(object):
                               bzero  = _tzero_  ,
                               array  = self.Data[_ttype_])
             _fits_cols_.append(_c_)
-                
+
         _coldefs_ = fits.ColDefs(_fits_cols_)
         _tbhdu_   = fits.BinTableHDU.from_columns(_coldefs_)
         # About the units
@@ -652,26 +658,25 @@ class RBD(object):
 
         _hduList_ = fits.HDUList([_hdu_,_tbhdu_])
 
-        self.CleanPaths() 
-            
-        if os.path.exists(self.OutputPath+self.MetaData['FITSfname']) :
-            print ('File '+ self.OutputPath+self.MetaData['FITSfname']+ '  already exist. Aborting....')
-            return False
-        else:
+        self.CleanPaths()
+
+        try:
             _hduList_.writeto(self.OutputPath+self.MetaData['FITSfname'])
-            
-        return True
+            return True
+        except OSError as err:
+            print("\n\n Write Error\n\n: {0}".format(err))
+            return False
 
     """------------------------------------------------------------------------------------ """
 
     def concat(self,RBDlist) :
         """
         concat:
-               A method to concatenate two or more RBD objects. 
+               A method to concatenate two or more RBD objects.
                The procedures doesn't check for the similarity of the objects.
-               The user must provide two objects with the same Data structure. 
+               The user must provide two objects with the same Data structure.
 
-               The procedure doesn't check neither the time sequence. The user 
+               The procedure doesn't check neither the time sequence. The user
                must take care of it.
 
         use:
@@ -684,7 +689,7 @@ class RBD(object):
               d.concat([d1,d2])
 
         Change Record:
-              First written by Guigue @ Sampa - 2017-09-08         
+              First written by Guigue @ Sampa - 2017-09-08
 
         """
 
@@ -699,20 +704,20 @@ class RBD(object):
         RBDFileName = []
         SSTType = RBDlist[0].MetaData['SSTType']
         ISODate = RBDlist[0].MetaData['ISODate']
-        
+
         primDimension= 0
         TagList = list(RBDlist[0].MetaData.keys())
         for iRBD in RBDlist :
             primDimension += iRBD.Data['time'].shape[0]
             ISOTime.append(iRBD.MetaData['ISOTime'])
             RBDFileName.append(iRBD.MetaData['RBDFileName'])
-            
+
         self.MetaData = { 'ISODate': ISODate,
                           'ISOTime': ISOTime,
                           'RBDFileName': RBDFileName,
                           'SSTType':SSTType}
-        
-                          
+
+
         TagList = list(RBDlist[0].Data.keys())
         for iTag in TagList:
             secDimension=0
@@ -730,16 +735,16 @@ class RBD(object):
             iFirst=iLast
 
         self.History.append('Concatenated Data')
-        
-        return 
-            
-            
+
+        return
+
+
     """------------------------------------------------------------------------------------ """
 
     def reduced(self):
         """
         reduced:
-             It produces a reduced form of the original data. It saves only the following columns in the 
+             It produces a reduced form of the original data. It saves only the following columns in the
              table:
 
              time    : time in Hus
@@ -750,7 +755,7 @@ class RBD(object):
              target  : target observed
              x_off   : scan offset in azimuth
              y_off   : scan offset in elevation
-    
+
         use:
             import oRBD
             d=oRBD.RBD([RBD filename])
@@ -765,7 +770,7 @@ class RBD(object):
 
         ListToPreserve = ['time','adc','adcval','elepos','azipos','opmode','target','x_off','y_off']
         ListToDelete = ['pm_daz', 'azierr', 'gps_status', 'pm_del', 'recnum', 'eleerr', 'pos_time', 'off']
-        
+
         for iKey in ListToDelete:
             try:
                 del self.Data[iKey]
@@ -775,17 +780,17 @@ class RBD(object):
         ChildToRemove=[]
         for iChild in self.header:
             if ListToPreserve.count(iChild.attrib['VarName']) == 0 : ChildToRemove.append(iChild)
-        
+
         for iChildToRemove in ChildToRemove : self.header.remove(iChildToRemove)
         self.History.append('Reduced Data File. Selected Variables saved')
 
         del self.bin_header
-                
+
         return
 
     """------------------------------------------------------------------------------------ """
     def CheckXMLTables(self):
-        
+
         if  not os.path.exists(self.PathToXML+'SSTDataFormatTimeSpanTable.xml')  :
             print ('  ')
             print ('File : '+ self.PathToXML+'SSTDataFormatTimeSpanTable.xml not found')
@@ -803,7 +808,7 @@ class RBD(object):
             print ('File : '+ self.PathToXML+'DataFormat-2002-12-04_to_2002-12-13.xml not found')
             print ('Exiting...')
             return False
-        
+
         if  not os.path.exists(self.PathToXML+'DataFormat-1999-05-02_to_2002-05-20.xml')  :
             print ('  ')
             print ('File : '+ self.PathToXML+'DataFormat-1999-05-02_to_2002-05-20.xml not found')
@@ -858,11 +863,11 @@ class RBD(object):
 
         if self.PathToXML[-1] != '/' :
             self.PathToXML = self.PathToXML+'/'
-            
+
         # Check the existence of the XML tables
         if not self.CheckXMLTables() :
-            return 
-        
+            return
+
         self.OutputPath = OutputPath
         self.InputPath  = InputPath
 
@@ -870,7 +875,7 @@ class RBD(object):
         self.MetaData = {}
         self.History = []
         self.version = Version
-        return 
+        return
 
 ######################################################################################
 
@@ -880,7 +885,7 @@ class DataTimeSpan(object):
     DataTimeSpan
 
     This class has the unique effect of reading the SSTDataFormatTimeSpanTable
-    and find the right RBD xml description file. 
+    and find the right RBD xml description file.
 
     Example of use:
        import oRBD
@@ -893,12 +898,12 @@ class DataTimeSpan(object):
 
         Firts created by Guigue @ Sampa on 2017.08.19 (very cold indeed)
 
-    """    
-        
+    """
+
     def findHeaderFile(self,SSTType="Integration",SSTDate="1899-12-31"):
         """
         findHeaderFile:
-        Given the DataType and the Date, look for the RBD xml description file. 
+        Given the DataType and the Date, look for the RBD xml description file.
         I guess there is a better and more efficient way to search in a b-tree, but
         I'm tired to find it ;-)
 
@@ -910,7 +915,7 @@ class DataTimeSpan(object):
             a string with the name of the RBD xml decription file.
 
         Change Record
-            First created by Guigue @ Sampa on 2017-08-19 
+            First created by Guigue @ Sampa on 2017-08-19
             Corrected on 2017-08-24
 
         """
@@ -919,7 +924,7 @@ class DataTimeSpan(object):
             filetype='Data'
         else:
             filetype='Auxiliary'
-            
+
         for child in self.table:
             if (child[0].text == filetype) and (child[1].text <= SSTDate) and (child[2].text >= SSTDate) :
                 DataDescriptionFileName=child[3].text
@@ -928,7 +933,7 @@ class DataTimeSpan(object):
     """------------------------------------------------------------------------"""
 
     def __init__(self,PathToXML):
-        
+
         _tt_ = xmlet.parse(PathToXML+'SSTDataFormatTimeSpanTable.xml')
         self.table = _tt_.getroot()
         return
