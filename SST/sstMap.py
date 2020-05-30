@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import pdb
 import scipy.interpolate as intl
 from scipy.ndimage import rotate
@@ -18,7 +17,7 @@ from sunpy import coordinates as Sun_Coordinates
 #
 # This is needed because IERS data repository is not
 # accepting downloads. The precision is lower, but
-# it' enough for our computations
+# it's enough for our computations
 #
 iers.conf.auto_download = False
 
@@ -28,6 +27,7 @@ from CraamTools import contiguo as c
 from CraamTools.fit import Circle
 from CraamTools.AstroTools import julian
 from CraamTools.AstroTools import get_pb0
+from CraamTools.filters.RunningMean import rm1d
 
 
 #=======================================================================================
@@ -57,11 +57,13 @@ from CraamTools.AstroTools import get_pb0
 #    from CraamTools.AstroTools import sstMap
 #    m0=sstMap.sstMap(d,<channel number: 0...5>)
 #    m0.Scans.Extract_Scans()
-#    m0.Scans.Correct_Scans(eshift=<val1>, oshift=<val2>)  # it must run to define the limb
 #    m0.Create_Image(image_size=<image size>)
 #    m0.Rotate_North_Image()
 #    m0.Calibrate_Map_in_T()
 #    m0.Write_FITS(<fits file name>)
+#
+#  To correct the zig-zag in maps use
+#    m0.Scans.Correct_Scans(eshift=<val1>, oshift=<val2>)
 #
 #=====================================================================================
 
@@ -317,7 +319,10 @@ class Scans(object):
             for j in np.arange(self.Ny):
                 mo[j,i] = self.T[j][i]
 
-        x,y       = Circle.get_limb(self.x_off,self.y_off,mo)
+        smooth=0
+        if self.channel > 3 :
+            smooth=10
+        x,y       = Circle.get_limb(self.x_off,self.y_off,mo,smooth=smooth)
         par,cov   = Circle.fit(x,y)
         self.limb = {'X0':par[0],'Y0':par[1],'R':par[2],'Cov':cov}
         self.image = mo
@@ -356,7 +361,7 @@ class Map(object):
         return
 
     def Get_Version(self):
-        return  '20200529T2100'
+        return  '20200530T1819'
 
     def Get_Observed_Sun_Center(self):
         ##################
@@ -383,6 +388,7 @@ class Map(object):
         #   It determines the solar disc center in "matrix coordinates"
         #
         #   @guiguesp - 2020-04-05
+        #             - 2020-05-30 : Changed the method to determine the Sun Center in Matrix Units
         #
         #______________________________________________________________________________
 
@@ -440,14 +446,12 @@ class Map(object):
         self.ele   = (np.asarray(ele)).transpose()
         self.MetaData.update({'Pixel_Size':{'X': pixel_size_x, 'Y':pixel_size_y, 'Units':'arcsec'}})
 
-        ######################################################
-        # Discover the center of the Sun disc in matrix coordinates
-        # (needed for rotations.
-        #
-
-        c0 = np.max(np.where(self.x_off[P//2,:] >= self.Scans.limb['X0']))
-        c1 = np.max(np.where(self.y_off[:,c0] >= self.Scans.limb['Y0']))
-        self.MetaData.update({'Sun_Center_Matrix':{'X0':c0,'Y0':c1}})
+        smooth=0
+        if self.MetaData['Frequency'] == '405' :
+            smooth=10
+        x,y       = Circle.get_limb(np.arange(P),np.arange(P),self.image,smooth=smooth)
+        par,cov   = Circle.fit(x,y)
+        self.MetaData.update({'Sun_Center_Matrix':{'X0':int(par[0]),'Y0':int(par[1])}})
 
         return
 
@@ -470,6 +474,10 @@ class Map(object):
         #
         #  @guiguesp - 2020-04-05
         #______________________________________________________________________________
+
+        if self.FLAGS['Rot_North'] :
+            # Done!!
+            return
 
         dx = self.image.shape[1]//2-self.MetaData['Sun_Center_Matrix']['X0']
         dy = self.image.shape[1]//2-self.MetaData['Sun_Center_Matrix']['Y0']
@@ -522,6 +530,7 @@ class Map(object):
         self.sun_off_x  = dx
         self.sun_off_y  = dy
         self.MetaData.update({'limb_off':{'X0':par[0],'Y0':par[1],'R':par[2]}})
+        self.FLAGS['Rot_North'] = True
 
         return
 
@@ -539,8 +548,9 @@ class Sun(object):
         #     IERS, for some reason it cannot download the data. So, I decided to
         #     work off-line with a lesser precision, although enoug for us.
         #
-        #  @guiguesp - 2020-04-05
         #
+        #  @guiguesp - 2020-04-05
+        #            - 2020-05-30 : Now using sunpy 1.1
         #_____________________________________________________________________________
 
         t = Time(ctime)
@@ -554,9 +564,10 @@ class Sun(object):
         L0 = Sun_Coordinates.sun.L0(ctime)
         B0 = Sun_Coordinates.sun.B0(ctime)
         P  = Sun_Coordinates.sun.P(ctime)
+        R_Sun = Sun_Coordinates.sun.angular_radius(ctime)
         Carrington  = Sun_Coordinates.sun.carrington_rotation_number(ctime)
 
-        return sun_radec,sun_altaz,L0,B0,P,Carrington
+        return sun_radec,sun_altaz,L0,B0,P,R_Sun,Carrington
 
 ##########################################################################################################################
 
@@ -584,7 +595,7 @@ class sstMap(Map):
     #      Calibrate_Map_in_T
     #
     #  @guiguesp - 2020-04-05
-    #
+    #            - 2020-05-29 : Write_FITS() mtehod added
     #_____________________________________________________________________________
 
     def __init__(self,d,channel=0):
@@ -594,9 +605,10 @@ class sstMap(Map):
             return
 
         self.version = self.Get_Version()
-        self.FLAGS   = {'Cal':False}
+        self.FLAGS   = {'Cal':False, 'Rot_North': False}
         self.Sun     = Sun()
 
+        self.image   = np.empty([256,256])
         frequency = '212'
         reference_Tb = self.Sun.quiet_sun_temp['212']
         if (channel > 3):
@@ -618,11 +630,12 @@ class sstMap(Map):
         self.MetaData.update({'ctime':self.Get_Time(d.MetaData,t_mean)})
         cg = CASLEO.Observatory_Coordinates()
         self.MetaData.update({'Observatory':cg})
-        radec,altaz,L0,B0,P,Carrington = self.Sun.Get_Sun_Coordinates(cg,self.MetaData['ctime'])
+        radec,altaz,L0,B0,P,R_Sun,Carrington = self.Sun.Get_Sun_Coordinates(cg,self.MetaData['ctime'])
         self.MetaData.update({'Sun_Coordinates': {'RaDec':radec,
                                                   'AltAz': altaz,
                                                   'L0': L0, 'B0': B0,
-                                                  'P':P, 'Carrington': Carrington},
+                                                  'P':P, 'R_Sun': R_Sun,
+                                                  'Carrington': Carrington},
                                 'Observatory': cg})
 
         self.MetaData.update({'Parallactic_Angle':self.Compute_Parallactic_Angle()})
@@ -703,6 +716,10 @@ class sstMap(Map):
     #
     #_____________________________________________________________________________
 
+        if self.FLAGS['Cal'] :
+            # Done!!
+            return
+
         self.Get_Calibration()
         self.image = self.MetaData['adc2T'] * self.image
         self.FLAGS['Cal'] = True
@@ -714,7 +731,7 @@ class sstMap(Map):
             return
 
         if len(FITSname) < 1:
-            FITSname = 'sst_map_' + self.MetaData['Frequency'] + 'GHz_' + self.MetaData['ctime'].isoformat()[0:16]+'.fits'
+            FITSname = 'sst_map_' + self.MetaData['Frequency'] + 'GHz_Channel_' + str(self.MetaData['Channel']) + '_' + self.MetaData['ctime'].isoformat()[0:16]+'.fits'
 
         self.MetaData.update({'FITSfname':FITSname})
         _isodate_ = self.MetaData['ISODate']
@@ -756,18 +773,28 @@ class sstMap(Map):
         _hdu_.header.append(('CRVAL2','0.000000',''))
         _hdu_.header.append(('CRPIX2',str(self.MetaData['Sun_Center_Matrix']['Y0']),''))
         _hdu_.header.append(('CDELT2',str(self.MetaData['Pixel_Size']['Y']),''))
-        _hdu_.header.append(('R_SUN',str(self.MetaData['Pixel_Size']['Y']),''))
 
+        # Some Solar Parameters
+        _hdu_.header.append(('R_SUN',str(self.MetaData['Sun_Coordinates']['R_Sun'].value)[0:7],'arcsecs'))
+        _hdu_.header.append(('OBSRAD',str(self.MetaData['limb_off']['R'])[0:7],'arcsecs'))
+        _hdu_.header.append(('L0',str(self.MetaData['Sun_Coordinates']['L0'].value)[0:7],'degres'))
+        _hdu_.header.append(('B0',str(self.MetaData['Sun_Coordinates']['B0'].value)[0:7],'degres'))
+        _hdu_.header.append(('P',str(self.MetaData['Sun_Coordinates']['P'].value)[0:7],'degres'))
 
-                # About the Copyright
+        # About the Copyright
         _hdu_.header.append(('comment','COPYRIGHT. Grant of use.',''))
         _hdu_.header.append(('comment','These data are property of Universidade Presbiteriana Mackenzie.'))
         _hdu_.header.append(('comment','The Centro de Radio Astronomia e Astrofisica Mackenzie is reponsible'))
         _hdu_.header.append(('comment','for their distribution. Grant of use permission is given for Academic '))
-        _hdu_.header.append(('comment','purposes only.'))
+        _hdu_.header.append(('comment','purposes only. Any questions contact guigue@craam.mackenzie.br'))
 
         if self.FLAGS['Cal']:
+            _hdu_.header.append(('ADC2T',str(self.MetaData['adc2T'])[0:7],'K/ADCu'))
             _hdu_.header.append(('history','Calibrated in Brightness Temperature'))
+
+        if self.FLAGS['Rot_North']:
+            _hdu_.header.append(('PARANG',str(self.MetaData['Parallactic_Angle'])[0:7],'degrees'))
+            _hdu_.header.append(('history','Rotated, North Up'))
 
 
         _hdu_list_ = fits.HDUList([_hdu_])
@@ -779,4 +806,4 @@ class sstMap(Map):
             return False
 
     def Get_Version(self):
-        return  '20200529T2100'
+        return  '20200530T1920'
