@@ -29,6 +29,7 @@ from CraamTools.AstroTools import julian
 from CraamTools.AstroTools import get_pb0
 from CraamTools.filters.RunningMean import rm1d
 
+_Version = '20200605T2355BRT'
 
 #=======================================================================================
 #
@@ -85,6 +86,13 @@ class Scans(object):
     #       Get_Version
     #
     #_____________________________________________________________________________
+
+    def __str__(self):
+        return 'A Class to reduce raw scans.'
+
+    @property
+    def version(self):
+        return self._version
 
     def Select_Data(self,direction='az'):
         #
@@ -332,7 +340,7 @@ class Scans(object):
         return  '20200529T1210'
 
     def __init__(self,d,channel):
-        self.version = self.Get_Version()
+        self._version = _Version
         self.channel = channel
         self.d = d
         return
@@ -356,9 +364,15 @@ class Map(object):
 
 
     def __init__(self):
-        self.version = self.Get_Version()
-
+        self.version = _Version
         return
+
+    def __str__(self):
+        return 'A Class with fundamental Map operations.'
+
+    @property
+    def version(self):
+        return self._version
 
     def Get_Version(self):
         return  '20200530T1819'
@@ -539,6 +553,9 @@ class Sun(object):
     def __init__(self):
         self.quiet_sun_temp = {'212': 5.9E+03, '405':5.1E+03}
 
+    def __str__(self):
+        return 'A Class to compute Sun ephemeris for El Leoncito.'
+
     def Get_Sun_Coordinates(self,cg,ctime):
         #
         #  Get_Sun_Coordinates
@@ -598,13 +615,20 @@ class sstMap(Map):
     #            - 2020-05-29 : Write_FITS() mtehod added
     #_____________________________________________________________________________
 
+    def __str__(self):
+        return 'The Class fo Solar maps with SST.'
+
+    @property
+    def version(self):
+        return self._version
+
     def __init__(self,d,channel=0):
 
         if (d.MetaData['SSTType'] != 'Integration'):
             print('\n  Only Integration (RS) data accepted\n')
             return
 
-        self.version = self.Get_Version()
+        self._version = _Version
         self.FLAGS   = {'Cal':False, 'Rot_North': False}
         self.Sun     = Sun()
 
@@ -804,6 +828,3 @@ class sstMap(Map):
         except OSError as err:
             print("\n\nWrite Error: {0}\n\n".format(err))
             return False
-
-    def Get_Version(self):
-        return  '20200530T1920'

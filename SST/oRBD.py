@@ -4,16 +4,15 @@ import numpy as np
 import xml.etree.ElementTree as xmlet
 from astropy.io import fits
 import CASLEO
+import oRBD
 import pdb
 
-# Our methods
-import oRBD
 
 ################################################################
 #                                                              #
 #  Version Number. Change everytime the code is changed.       #
 #                                                              #
-Version = '20200429T1049BRT'                                   #
+_Version = '20200618T1703BRT'                                   #
 #                                                              #
 ################################################################
 class RBD(object):
@@ -125,14 +124,48 @@ class RBD(object):
 #                             >>> time_interval = [datetime.datetime(2020,4,26,20,30,15,350), datetime.datetime(2020,4,26,20,40,28,550)]
 #                             >>> d1 = d.extract(time_interval)
 #         - 2020-05-29 : now CASLEO information is in separate function.
+#         - 2020-06-18 : stupid mistake corrected !
 #
 ###############################################################################################
 
-    def getVersion(self):
-        return self.version
+    @property
+    def version(self):
+        return self._version
+
+    def __init__(self,PathToXML='',InputPath='./',OutputPath='./'):
+
+    # PathToXML should point to tha directory where the XML tables are copied
+    # When not defined, look at the environment
+        if (isinstance(PathToXML,str) and len(PathToXML) == 0):
+            if ('RBDXMLPATH' in os.environ.keys()):
+                self.PathToXML = os.environ['RBDXMLPATH']
+            else:
+                self.PathToXML = './'
+        else:
+            self.PathToXML=PathToXML
+
+        if self.PathToXML[-1] != '/' :
+            self.PathToXML = self.PathToXML+'/'
+
+    # Check the existence of the XML tables
+        if not self.CheckXMLTables() :
+            return
+
+        self.OutputPath = OutputPath
+        self.InputPath  = InputPath
+
+        self.Data     = {}
+        self.MetaData = {}
+        self.History  = []
+        self._version = _Version
+
+        return
+
+    def __str__(self):
+        return 'A Class representing SST Raw Binary Data'
 
     def extract(self,time_interval):
-        _temp_ = RBD()
+        _temp_ = self.RBD()
         _temp_.header = self.header
         _temp_.MetaData = self.MetaData
         _temp_.History.append('Extracted Interval : ' + str(time_interval))
@@ -145,9 +178,6 @@ class RBD(object):
             _temp_.Data[iTag] = self.Data[iTag][ (self.Data['time']>= t0 ) & ( self.Data['time'] <= t1)]
 
         return _temp_
-
-
-
 
     def __add__(self,d):
 
@@ -849,33 +879,6 @@ class RBD(object):
 
     """------------------------------------------------------------------------------------ """
 
-    def __init__(self,PathToXML='',InputPath='./',OutputPath='./'):
-
-        # PathToXML should point to tha directory where the XML tables are copied
-        # When not defined, look at the environment
-        if (isinstance(PathToXML,str) and len(PathToXML) == 0):
-            if ('RBDXMLPATH' in os.environ.keys()):
-                    self.PathToXML = os.environ['RBDXMLPATH']
-            else:
-                self.PathToXML = './'
-        else:
-            self.PathToXML=PathToXML
-
-        if self.PathToXML[-1] != '/' :
-            self.PathToXML = self.PathToXML+'/'
-
-        # Check the existence of the XML tables
-        if not self.CheckXMLTables() :
-            return
-
-        self.OutputPath = OutputPath
-        self.InputPath  = InputPath
-
-        self.Data   = {}
-        self.MetaData = {}
-        self.History = []
-        self.version = Version
-        return
 
 ######################################################################################
 
@@ -899,6 +902,9 @@ class DataTimeSpan(object):
         Firts created by Guigue @ Sampa on 2017.08.19 (very cold indeed)
 
     """
+
+    def __str__(self):
+        return 'A class to read the SST Data Format Table and find the right xml description file.'
 
     def findHeaderFile(self,SSTType="Integration",SSTDate="1899-12-31"):
         """
